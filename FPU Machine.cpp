@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 /**************************************************************************
  *                                                                        *
  *               Copyright (C) 2000, Eclipse Productions                  *
@@ -61,6 +42,7 @@
 #include <math.h>
 #include "WinMain.h"
 #include "EmuMain.h"
+#include "CpuMain.h"
 #include "resource.h"
 
 #define CPU_ERROR(x,y) Debug(0,"%s %08X",x,y)
@@ -85,7 +67,8 @@ void doInstr();
 	//_control87(RCold, _MCW_RC);
 
 #define FC_UNSET() \
-	__asm and FpuControl[31*4], 0xff7fffff;
+	FpuControl[31] &= 0xff7fffff;
+	//__asm and FpuControl[31*4], 0xff7fffff;
 
 #define FC_SET(x) \
 	if ((x)) FpuControl[31] |= 0x00800000;
@@ -98,12 +81,18 @@ extern void (*FpuCommands20[0x40])();
 extern void (*FpuCommands21[0x40])();
 
 extern R4K_FPU_union FpuRegs;
-
+#ifdef USE_OLD_FPU
 void opCOP1(void) {
-	sop.rd = sop.rd;
+#else
+void opCOP1z(void) {
+#endif
+//	static cnt = 0;
+//	cnt ++;
+/*	sop.rd = sop.rd;
 	sop.rt = sop.rt;
 	sop.sa = sop.sa;
-
+*/
+	//Debug (0, "COP1");
 	bool CopUnuseableException(u32 addr, u32 copx);
 	if (!(MmuRegs[12] & 0x20000000)) {
 		pc-=4;
@@ -112,24 +101,24 @@ void opCOP1(void) {
 	}
 
 	switch (sop.rs) {
-	case 0:
+	case 0: // MFC1
 		CpuRegs[sop.rt] = (s32)FpuRegs.w[sop.rd];
 		break;
-	case 1:
+	case 1: // DMFC1
 		CpuRegs[sop.rt] = FpuRegs.l[sop.rd/2];
 		break;
-	case 2:
+	case 2: // CFC1
 		CpuRegs[sop.rt] = (s32)FpuControl[sop.rd];
 		break;
-	case 4:
+	case 4: // MTC1
 		FpuRegs.w[sop.rd] = (s32)CpuRegs[sop.rt];
 		break;
-	case 5:
+	case 5: // DMTC1
 		FpuRegs.l[sop.rd/2] = CpuRegs[sop.rt];
 		break;
-	case 6:
+	case 6: // CTC1
 		FpuControl[sop.rd] = (u32)CpuRegs[sop.rt];
-		switch (FpuControl[31] & 3) {
+		/*switch (FpuControl[31] & 3) {
 		case 0:
 			_control87(_RC_NEAR, _MCW_RC);
 			break;
@@ -142,7 +131,7 @@ void opCOP1(void) {
 		default:
 			_control87(_RC_DOWN, _MCW_RC);
 			break;
-		}
+		}*/
 		break;
 	case 8:
 		switch (sop.rt & 3){
@@ -324,27 +313,25 @@ void fpNEG21(void){
 }
 
 void fpTRCl16(void){
-	START_TRUNICATE_FPU();
 	FpuRegs.l[sop.sa/2] = (s64)FpuRegs.s[sop.rd];
-	END_TRUNICATE_FPU();
 }
 
 void fpTRCl17(void){
-	START_TRUNICATE_FPU();
 	FpuRegs.l[sop.sa/2] = (s64)FpuRegs.d[sop.rd/2];
-	END_TRUNICATE_FPU();
 }
 
 void fpCELl16(void){
 	START_CEILING_FPU();
 	FpuRegs.l[sop.sa/2] = (s64)FpuRegs.s[sop.rd];
 	END_CEILING_FPU();
+	Debug (0, "fpCELl16");
 }
 
 void fpCELl17(void){
 	START_CEILING_FPU();
 	FpuRegs.l[sop.sa/2] = (s64)FpuRegs.d[sop.rd/2];
 	END_CEILING_FPU();
+	Debug (0, "fpCELl17");
 }
 
 void fpRNDw16(void){
@@ -363,12 +350,14 @@ void fpRNDl16(void){
 	START_ROUND_FPU();
 	FpuRegs.l[sop.sa/2] = (s64)FpuRegs.s[sop.rd];
 	END_ROUND_FPU();
+	Debug (0, "fpRNDl16");
 }
 
 void fpRNDl17(void){
 	START_ROUND_FPU();
 	FpuRegs.l[sop.sa/2] = (s64)FpuRegs.d[sop.rd/2];
 	END_ROUND_FPU();
+	Debug (0, "fpRNDl17");
 }
 
 
@@ -376,36 +365,40 @@ void fpFLRw16(void){
 	START_FLOOR_FPU();
 	FpuRegs.w[sop.sa] = (s32)FpuRegs.s[sop.rd];
 	END_FLOOR_FPU();
+//	Debug (0, "fpFLRw16");
 }
 
 void fpFLRw17(void){
 	START_FLOOR_FPU();
 	FpuRegs.w[sop.sa] = (s32)FpuRegs.d[sop.rd/2];
 	END_FLOOR_FPU();
+	Debug (0, "fpFLRw17");
 }
 
 void fpFLRl16(void){
 	START_FLOOR_FPU();
 	FpuRegs.l[sop.sa/2] = (s64)FpuRegs.s[sop.rd];
 	END_FLOOR_FPU();
+	Debug (0, "fpFLRl16");
 }
 
 void fpFLRl17(void){
 	START_FLOOR_FPU();
 	FpuRegs.l[sop.sa/2] = (s64)FpuRegs.d[sop.rd/2];
 	END_FLOOR_FPU();
+	Debug (0, "fpFLRl17");
 }
 
 void fpTRCw16(void){
-	START_TRUNICATE_FPU();
+	//START_TRUNICATE_FPU();
 	FpuRegs.w[sop.sa] = (s32)FpuRegs.s[sop.rd];
-	END_TRUNICATE_FPU();
+	//END_TRUNICATE_FPU();
 }
 
 void fpTRCw17(void){
-	START_TRUNICATE_FPU();
+	//START_TRUNICATE_FPU();
 	FpuRegs.w[sop.sa] = (s32)FpuRegs.d[sop.rd/2];
-	END_TRUNICATE_FPU();
+	//END_TRUNICATE_FPU();
 }
 
 void fpCELw16(void){
@@ -537,13 +530,13 @@ void fpC_ULT17(void){
 void fpC_OLE16(void){
 	//0110
 	FC_UNSET();
-	FC_SET(FpuRegs.s[sop.rd]<=FpuRegs.s[sop.rt]); 
+	FC_SET(FpuRegs.s[sop.rd] <= FpuRegs.s[sop.rt]); 
 }
 
 void fpC_OLE17(void){
 	//0110
 	FC_UNSET();
-	FC_SET(FpuRegs.d[sop.rd/2]<=FpuRegs.d[sop.rt/2]); 
+	FC_SET(FpuRegs.d[sop.rd/2] <= FpuRegs.d[sop.rt/2]); 
 }
 
 void fpC_ULE16(void){
@@ -564,24 +557,28 @@ void fpC_SF16(void){
 	//1000
 	FC_UNSET();
 	if (_isnan(FpuRegs.s[sop.rd]) || _isnan(FpuRegs.s[sop.rt])) { CPU_ERROR(L_STR(IDS_NAN_FOUND),opcode); }
+	__asm int 3;
 }
 
 void fpC_SF17(void){
 	//1000
 	FC_UNSET();
 	if (_isnan(FpuRegs.d[sop.rd/2]) || _isnan(FpuRegs.d[sop.rt/2])) { CPU_ERROR(L_STR(IDS_NAN_FOUND),opcode); }
+	__asm int 3;
 }
 
 void fpC_NGLE16(void){
 	//1001
 	FC_UNSET();
 	if (_isnan(FpuRegs.s[sop.rd]) || _isnan(FpuRegs.s[sop.rt])) { FC_SET(1); CPU_ERROR(L_STR(IDS_NAN_FOUND),opcode); }
+	__asm int 3;
 }
 
 void fpC_NGLE17(void){
 	//1001
 	FC_UNSET();
 	if (_isnan(FpuRegs.d[sop.rd/2]) || _isnan(FpuRegs.d[sop.rt/2])) { FC_SET(1); CPU_ERROR(L_STR(IDS_NAN_FOUND),opcode); }
+	__asm int 3;
 }
 
 void fpC_SEQ16(void){

@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 #include <windows.h>
 #include <stdio.h>
 #include "WinMain.h"
@@ -36,6 +17,14 @@
 HWND DShWnd, DhWnd;
 bool isHidden = false;
 
+
+#define MYTIMER 1337
+// Debug Queueing
+const int MAXDEBUGQUEUE = 1000;
+char *DebugQueue[MAXDEBUGQUEUE];
+int  QueuePos = 0;
+
+void PrintDebugQueue ();
 
 LRESULT CALLBACK ConsoleProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -76,6 +65,7 @@ LRESULT CALLBACK ConsoleProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			SendMessage(DhWnd, WM_SETFONT, (WPARAM) hSysFont, 0);
 
 			ShowWindow(DhWnd, SW_SHOW);
+			SetTimer (GhWnd, MYTIMER, 100, NULL);
 		}
 		break;
 		case WM_CLOSE:
@@ -85,6 +75,8 @@ LRESULT CALLBACK ConsoleProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			DShWnd = NULL;
 			DestroyWindow(DhWnd);
 			DhWnd = NULL;
+			KillTimer (GhWnd, MYTIMER);
+			PrintDebugQueue ();
 			break;
 		case WM_SIZE: {
 			RECT rt;
@@ -127,7 +119,6 @@ void DestroyConsoleWindow () {
 }
 void CreateConsoleWindow (bool shouldHide) {
 	RECT rt;
-	isHidden = shouldHide;
 	if (!DShWnd) {
 		DShWnd = CreateWindowEx(0,
 								"CONSOLE", 
@@ -150,12 +141,15 @@ void CreateConsoleWindow (bool shouldHide) {
 		ShowWindow(DShWnd, SW_SHOW);
 	else
 		ShowWindow (DShWnd, SW_HIDE);
+	isHidden = shouldHide;
 	SetFocus (GhWnd);
 }
 
 void Debug (int logtype, char *string, ...) {
-	if (cpuIsReset == true)
-		return;
+	static FILE *logfile1 = fopen ("d:\\logfile1.txt", "wt");
+//	static FILE *logfile2 = fopen ("d:\\logfile2.txt", "wt");
+	/*if (cpuIsReset == true)
+		return;*/
 	char buffer[300];
 	va_list argptr;
 	va_start(argptr, string);
@@ -163,16 +157,23 @@ void Debug (int logtype, char *string, ...) {
 	va_end(argptr);
 	if (logtype & 0x1)
 		MessageBox (GhWnd, buffer, WINTITLE, MB_OK);
-#ifdef _DEBUG // only do logfiles in debug build
+	strcat (buffer, "\r\n");
+//#ifdef _DEBUG // only do logfiles in debug build
 	switch (logtype) { // TODO: Meaningful logfiles
 		case 0x2: // MessageBox and LogFile #1
+			fprintf (logfile1, buffer);
+			fflush (logfile1);
+			return;
+		break;
 		case 0x4: // MessageBox and LogFile #2
+//			fprintf (logfile2, buffer);
+//			fflush (logfile2);
+		break;
 		case 0x6: // MessageBox and LogFile #3
 		default: // Just the console window
 			break;
 	}
-#endif
-	strcat (buffer, "\r\n");
+//#endif
 	dprintf (buffer);
 }
 
@@ -183,16 +184,38 @@ void dprintf (char* string, ...){
 	vsprintf(buffer, string, argptr);
 	va_end(argptr);
 
-	SetFocus (DhWnd);
-	int ndx = GetWindowTextLength (DhWnd);
-	//SendMessage (DhWnd, EM_SETSEL, 0, 1000);//(LPARAM)ndx);
-	SendMessage (DhWnd, EM_SETSEL, (WPARAM)ndx, (LPARAM)ndx);
-	SendMessage (DhWnd, EM_REPLACESEL, 0, (LPARAM) ((LPSTR) buffer));
-	SendMessage (DhWnd, EM_SETSEL, (WPARAM)ndx, (LPARAM)ndx);
 	if (RegSettings.enableConsoleLogging == true) {
 		// We are logging here!
 	}
-	SetFocus (GhWnd);
+
+	if (isHidden == true) // Then don't bother posting to the console window
+		return;
+
+	if (QueuePos < MAXDEBUGQUEUE) {
+		DebugQueue[QueuePos] = new char [strlen(buffer)+1];
+		strcpy (DebugQueue[QueuePos++], buffer);
+	}
+}
+
+void PrintDebugQueue () {
+	char *buffer;
+	if (QueuePos == 0)
+		return;
+	if (isHidden == false)
+		SetFocus (DhWnd);
+	for (int x = 0; x < QueuePos; x++) {
+		buffer = DebugQueue[x];
+		int ndx = GetWindowTextLength (DhWnd);
+		//SendMessage (DhWnd, EM_SETSEL, 0, 1000);//(LPARAM)ndx);
+		SendMessage (DhWnd, EM_SETSEL, (WPARAM)ndx, (LPARAM)ndx);
+		SendMessage (DhWnd, EM_REPLACESEL, 0, (LPARAM) ((LPSTR) buffer));
+		SendMessage (DhWnd, EM_SETSEL, (WPARAM)ndx, (LPARAM)ndx);
+		delete DebugQueue[x];
+		DebugQueue[x] = NULL;
+	}
+	QueuePos = 0;
+	if (isHidden == false)
+		SetFocus (GhWnd);
 }
 
 ATOM RegisterConsoleClass (HINSTANCE hInstance) {

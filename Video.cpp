@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 /**************************************************************************
  *                                                                        *
  *               Copyright (C) 2000, Eclipse Productions                  *
@@ -56,8 +37,25 @@
 
 VIDEODLL gfxdll;
 
-void InitInternalVideo(void); // Found in GfxMain.cpp
 void DummyVoidVoid ();
+
+
+int last_time = 0, frames = 0;
+
+void ComputeFPS(void) {
+	static int last_time = 0, frames = 0;
+	char buffer[128];
+	if (isFullScreen == false) {
+		int current_time = timeGetTime();
+		frames++;
+		if (current_time - last_time >= 1000) {
+			sprintf(buffer,"%i FPS", frames);
+			SendMessage(hwndStatus, SB_SETTEXT, 1, (LPARAM)(LPSTR) buffer);
+			last_time = timeGetTime();
+			frames = 0;
+		}
+	}
+}
 
 
 /********************************************************************************************/
@@ -71,12 +69,6 @@ BOOL LoadVideoPlugin(char* libname) {
 	PLUGIN_INFO Plugin_Info;
 	ZeroMemory(&Plugin_Info, sizeof(Plugin_Info));
 
-	if ((libname == NULL) || ((libname[0]=='.' && libname[1]==0)) || (libname[0]==0)) {
-		InitInternalVideo();
-		strcpy(RegSettings.vidDll,libname);
-		return TRUE;
-	}
-	
 	if (gfxdll.hinstLibVideo != NULL) gfxdll.Close ();
 	
 	gfxdll.hinstLibVideo = LoadLibrary(libname);
@@ -95,7 +87,7 @@ BOOL LoadVideoPlugin(char* libname) {
 	gfxdll.GetDllInfo(&Plugin_Info);
 
 	if(Plugin_Info.Type == PLUGIN_TYPE_GFX) {
-		if(Plugin_Info.Version != 0x0102) {
+		if((Plugin_Info.Version != 0x0102) && (Plugin_Info.Version != 0x0103)) {
 			Debug (0, "%s is not compatable with Apollo. %d != 1", libname, Plugin_Info.Version);
 			gfxdll.Close();
 			return FALSE;
@@ -125,7 +117,6 @@ void CloseVideoPlugin()
 	  FreeLibrary(gfxdll.hinstLibVideo); 
 
   ZeroMemory (&gfxdll, sizeof(VIDEODLL));
-  InitInternalVideo();
 }
 
 // I do this function in the following way to preserve my dummy functions
@@ -148,7 +139,7 @@ bool LoadFunctions () {
 		if (temp) gfxdll.ProcessDList	= (void (__cdecl*)(void)) temp;
 
 	temp = GetProcAddress(gfxdll.hinstLibVideo, "ChangeWindow");
-		if (temp) gfxdll.ChangeWindow = (void (__cdecl*)(BOOL)) temp;
+		if (temp) gfxdll.ChangeWindow = (void (__cdecl*)(void)) temp;
 	temp = GetProcAddress(gfxdll.hinstLibVideo, "DllAbout");
 		if (temp) gfxdll.DllAbout		=	(void (__cdecl*)(HWND)) temp;
 	temp = GetProcAddress(gfxdll.hinstLibVideo, "DllConfig");
@@ -171,6 +162,8 @@ bool LoadFunctions () {
 		if (temp) gfxdll.ViStatusChanged=	(void (__cdecl*)(void))	temp;
 	temp = GetProcAddress(gfxdll.hinstLibVideo, "ViWidthChanged");
 		if (temp) gfxdll.ViWidthChanged	=	(void (__cdecl*)(void))	temp;
+	temp = GetProcAddress(gfxdll.hinstLibVideo, "CaptureScreen");
+		if (temp) gfxdll.CaptureScreen	=	(void (__cdecl*)(char * Directory))	temp;
 	temp = GetProcAddress(gfxdll.hinstLibVideo, "GiveMeConsole");
 		if (temp) {
 			temper = (void *)Debug;
@@ -192,6 +185,7 @@ extern u8* MI;
 extern u8* VI;
 extern u8* SP;
 extern u8* DPC;
+extern u32 valloc;
 
 GFX_INFO Gfx_Info; // make it stay just in case the evil plugin doesn't store a local copy
 
@@ -204,7 +198,7 @@ void InitGFXPlugin () {
 	Gfx_Info.hWnd					= GhWnd;
 	Gfx_Info.hStatusBar				= hwndStatus;
 	Gfx_Info.MemoryBswaped			= TRUE;
-	Gfx_Info.HEADER					= RomMemory;
+	Gfx_Info.HEADER					= (u8 *)(valloc+0x10000000);
 	Gfx_Info.RDRAM					= rdram;
 	Gfx_Info.DMEM					= idmem;
 	Gfx_Info.IMEM					= (idmem+0x1000);

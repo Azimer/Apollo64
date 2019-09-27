@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+// Microsoft Visual C++ generated include file.
 // Used by rscript.rc
 //
 #define IDS_READY                       1
@@ -11,6 +11,7 @@
 #define ID_DUNNO2                       4
 #define IDS_UK_ERROR                    4
 #define ID_PLUGIN_VID_TEST              4
+#define ID_OPTIONS_8MB                  4
 #define IDS_DYN_MEM_FAIL                5
 #define ID_PLUGIN_VID_ABOUT             5
 #define IDS_BIG_DYN_SIZE                6
@@ -78,6 +79,7 @@
 #define IDD_DEBUGME                     106
 #define IDD_PLUGINS                     108
 #define IDD_REGS                        110
+#define ID_HELP_BETAINFO                113
 #define ID__RI_EC2                      1000
 #define ID__RI_FNAME                    1001
 #define ID__RI_INAME                    1002
@@ -177,36 +179,59 @@
 #define IDC_DEBUG_ITEML25               1101
 #define IDC_DEBUG_ITEML26               1102
 #define IDC_DEBUG_ITEML27               1103
-#define IDC_DEBUG_ITEMR1                1104
-#define IDC_DEBUG_ITEMR2                1105
-#define IDC_DEBUG_ITEMR3                1106
-#define IDC_DEBUG_ITEMR4                1107
-#define IDC_DEBUG_ITEMR5                1108
-#define IDC_DEBUG_ITEMR6                1109
-#define IDC_DEBUG_ITEMR7                1110
-#define IDC_DEBUG_ITEMR8                1111
-#define IDC_DEBUG_ITEMR9                1112
-#define IDC_DEBUG_ITEMR10               1113
-#define IDC_DEBUG_ITEMR11               1114
-#define IDC_DEBUG_ITEMR12               1115
-#define IDC_DEBUG_ITEMR13               1116
-#define IDC_DEBUG_ITEMR14               1117
-#define IDC_DEBUG_ITEMR15               1118
-#define IDC_DEBUG_ITEMR16               1119
-#define IDC_DEBUG_ITEMR17               1120
-#define IDC_DEBUG_ITEMR18               1121
-#define IDC_DEBUG_ITEMR19               1122
-#define IDC_DEBUG_ITEMR20               1123
-#define IDC_DEBUG_ITEMR21               1124
-#define IDC_DEBUG_ITEMR22               1125
-#define IDC_DEBUG_ITEMR23               1126
-#define IDC_DEBUG_ITEMR24               1127
-#define IDC_DEBUG_ITEMR25               1128
-#define IDC_DEBUG_ITEMR26               1129
-#define IDC_DEBUG_ITEMR27               1130
+#define IDC_DEBUG_ITEML28               1104
+#define IDC_DEBUG_ITEML29               1105
+#define IDC_DEBUG_ITEML30               1106
+#define IDC_DEBUG_ITEML31               1107
+#define IDC_DEBUG_ITEML32               1108
+#define IDC_DEBUG_ITEML33               1109
+#define IDC_DEBUG_ITEML34               1110
+#define IDC_DEBUG_ITEML35               1111
+#define IDC_DEBUG_ITEML36               1112
+#define IDC_DEBUG_ITEML37               1113
+#define IDC_DEBUG_ITEML38               1114
+#define IDC_DEBUG_ITEMR1                1115
+#define IDC_DEBUG_ITEMR2                1116
+#define IDC_DEBUG_ITEMR3                1117
+#define IDC_DEBUG_ITEMR4                1118
+#define IDC_DEBUG_ITEMR5                1119
+#define IDC_DEBUG_ITEMR6                1120
+#define IDC_DEBUG_ITEMR7                1121
+#define IDC_DEBUG_ITEMR8                1122
+#define IDC_DEBUG_ITEMR9                1123
+#define IDC_DEBUG_ITEMR10               1124
+#define IDC_DEBUG_ITEMR11               1125
+#define IDC_DEBUG_ITEMR12               1126
+#define IDC_DEBUG_ITEMR13               1127
+#define IDC_DEBUG_ITEMR14               1128
+#define IDC_DEBUG_ITEMR15               1129
+#define IDC_DEBUG_ITEMR16               1130
+#define IDC_DEBUG_ITEMR17               1131
+#define IDC_DEBUG_ITEMR18               1132
+#define IDC_DEBUG_ITEMR19               1133
+#define IDC_DEBUG_ITEMR20               1134
+#define IDC_DEBUG_ITEMR21               1135
+#define IDC_DEBUG_ITEMR22               1136
+#define IDC_DEBUG_ITEMR23               1137
+#define IDC_DEBUG_ITEMR24               1138
+#define IDC_DEBUG_ITEMR25               1139
+#define IDC_DEBUG_ITEMR26               1140
+#define IDC_DEBUG_ITEMR27               1141
+#define IDC_DEBUG_ITEMR28               1142
+#define IDC_DEBUG_ITEMR29               1143
+#define IDC_DEBUG_ITEMR30               1144
+#define IDC_DEBUG_ITEMR31               1145
+#define IDC_DEBUG_ITEMR32               1146
+#define IDC_DEBUG_ITEMR33               1147
+#define IDC_DEBUG_ITEMR34               1148
+#define IDC_DEBUG_ITEMR35               1149
+#define IDC_DEBUG_ITEMR36               1150
+#define IDC_DEBUG_ITEMR37               1151
+#define IDC_DEBUG_ITEMR38               1152
+#define IDC_DEBUG_SCRBAR                1153
 #define ID_FILE_EXIT                    40001
 #define ID_FILE_CLOSEROM                40002
-#define ID_FILE_RECENT_FILE             40003
+#define ID_OPTIONS_RUMBLE               40003
 #define ID_FILE_ROMINFO                 40004
 #define ID_FILE_SCREENSHOT              40005
 #define ID_CPU_RESET                    40006
@@ -239,19 +264,29 @@
 #define ID_CPU_R4KDEBUGGER              40033
 #define ID_OPTIONS_VIDEO                40034
 #define ID_OPTION_INPUT                 40035
+#define ID_OPTIONS_INPUT                40035
 #define ID_OPTIONS_SOUND                40036
 #define ID_OPTIONS_320                  40037
 #define ID_OPTIONS_640                  40038
 #define ID_OPTIONS_800                  40039
+#define ID_FILE_RECENT_FILE             40040
+#define ID_CPU_COMPRESS                 40048
+#define ID_OPTION_FULLSCREEN            40049
+#define ID_OPTIONS_FULLSCREEN           40049
+#define ID_OPTIONS_VSYNCHACK_1          40050
+#define ID_OPTIONS_VSYNCHACK_2          40051
+#define ID_OPTIONS_VSYNCHACK_3          40052
+#define ID_OPTIONS_VSYNCHACK_4          40053
+#define ID_OPTIONS_4KEEP                40054
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        113
-#define _APS_NEXT_COMMAND_VALUE         40040
-#define _APS_NEXT_CONTROL_VALUE         1132
+#define _APS_NEXT_RESOURCE_VALUE        114
+#define _APS_NEXT_COMMAND_VALUE         40055
+#define _APS_NEXT_CONTROL_VALUE         1134
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

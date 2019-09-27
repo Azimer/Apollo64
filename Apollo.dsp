@@ -44,7 +44,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FAs /YX /FD /c
+# ADD CPP /nologo /G5 /W3 /GX /O2 /Ob2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FAs /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib advapi32.lib comdlg32.lib winmm.lib ddraw.lib dxguid.lib /nologo /subsystem:windows /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib113.lib /nologo /subsystem:windows /machine:I386 /nodefaultlib:"MSVCRT" /out:"d:\emu\n64\pj643\Apollo.exe"
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "Apollo - Win32 Debug"
@@ -81,7 +81,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 dxguid.lib ddraw.lib kernel32.lib user32.lib gdi32.lib comctl32.lib advapi32.lib comdlg32.lib winmm.lib /nologo /subsystem:windows /debug /machine:I386
+# ADD LINK32 dxguid.lib ddraw.lib kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib113.lib /nologo /subsystem:windows /debug /machine:I386 /out:"D:\emu\n64\pj643\Apollo.exe"
 # SUBTRACT LINK32 /profile
 
 !ELSEIF  "$(CFG)" == "Apollo - Win32 ReleaseProfiled"
@@ -99,7 +99,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FAs /YX /FD /c
-# ADD CPP /nologo /W3 /GX /Zi /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FAs /YX /FD /c
+# ADD CPP /nologo /G6 /MT /W3 /GX /Zi /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FAs /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -110,7 +110,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib advapi32.lib comdlg32.lib dxguid.lib ddraw.lib winmm.lib /nologo /subsystem:windows /machine:I386
 # SUBTRACT BASE LINK32 /pdb:none
-# ADD LINK32 dxguid.lib ddraw.lib kernel32.lib user32.lib gdi32.lib comctl32.lib advapi32.lib comdlg32.lib winmm.lib /nologo /subsystem:windows /profile /debug /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib113.lib /nologo /subsystem:windows /profile /map /machine:IX86 /nodefaultlib:"LIBCMT"
 
 !ENDIF 
 
@@ -125,6 +125,30 @@ LINK32=link.exe
 # Begin Group "Gui"
 
 # PROP Default_Filter ""
+# Begin Group "Zip Support"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\unzip.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\unzip.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\zconf.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\zip.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\zlib.h
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\console.cpp
@@ -148,9 +172,53 @@ SOURCE=.\WinMain.cpp
 # Begin Group "RCP"
 
 # PROP Default_Filter ""
+# Begin Group "rsp"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\RSP\debug.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\RSP\debug.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\RSP\dump_rsp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\RSP\dump_rsp.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\RSP\rsp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\RSP\rsp.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\RSP\rsp_helper.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\RSP\rsp_mnemonic.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\RSP\rsp_registers.h
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\rcp.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\RspDump.cpp
 # End Source File
 # End Group
 # Begin Group "r4300"
@@ -172,6 +240,29 @@ SOURCE=".\MMU Machine.cpp"
 SOURCE=".\R4K Machine.cpp"
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\EventScheduler.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=".\r4300i Compiler.cpp"
+
+!IF  "$(CFG)" == "Apollo - Win32 Release"
+
+# PROP Exclude_From_Build 1
+
+!ELSEIF  "$(CFG)" == "Apollo - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "Apollo - Win32 ReleaseProfiled"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=".\R4K Memory.cpp"
+# End Source File
 # End Group
 # Begin Source File
 
@@ -179,47 +270,43 @@ SOURCE=.\EmuMain.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=".\R4K Memory.cpp"
+SOURCE=.\SaveChips.cpp
 # End Source File
 # End Group
 # Begin Group "Plugin Overhead"
-
-# PROP Default_Filter ""
-# Begin Group "Video"
-
-# PROP Default_Filter ""
-# Begin Group "Internal Video"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\gfxmain.cpp
-# End Source File
-# End Group
-# Begin Source File
-
-SOURCE=.\Video.cpp
-# End Source File
-# End Group
-# Begin Group "Audio"
 
 # PROP Default_Filter ""
 # Begin Source File
 
 SOURCE=.\Audio.cpp
 # End Source File
-# End Group
-# Begin Group "Input"
+# Begin Source File
 
-# PROP Default_Filter ""
+SOURCE=.\audiodll.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\Controllers.cpp
 # End Source File
-# End Group
+# Begin Source File
+
+SOURCE=.\inputdll.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\plugin.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\Plugins.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Video.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\videodll.h
 # End Source File
 # End Group
 # End Group
@@ -229,6 +316,10 @@ SOURCE=.\Plugins.cpp
 # Begin Group "GuiH"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE="..\..\Program Files\Microsoft Visual Studio\Vc98\Include\Basetsd.h"
+# End Source File
 # Begin Source File
 
 SOURCE=.\console.h
@@ -247,19 +338,11 @@ SOURCE=.\WinMain.h
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\CpuMain.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\EmuMain.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\inputdll.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\plugin.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\videodll.h
 # End Source File
 # End Group
 # End Group
@@ -279,9 +362,5 @@ SOURCE=.\apollo.ico
 SOURCE=.\rscript.rc
 # End Source File
 # End Group
-# Begin Source File
-
-SOURCE=".\todo-KAH.txt"
-# End Source File
 # End Target
 # End Project

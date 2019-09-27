@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 #include <windows.h>
 #include <commctrl.h> // For status window
 #include <stdio.h>
@@ -25,11 +6,23 @@
 #include "EmuMain.h"
 #include "videodll.h"
 #include "inputdll.h"
-bool volatile cpuIsDone = false;
+#include "audiodll.h"
+
+void SaveChipOpen ();
+void SaveChipClose ();
+void SaveState ();
+void LoadState ();
+
+bool volatile cpuIsDone = true;
 bool volatile cpuIsReset = false;
+bool volatile cpuSaveState = false;
+bool volatile cpuLoadState = false;
 
 bool cpuContextIsValid=false;
 bool cpuIsPaused=false;
+
+extern BOOL bFullScreen;
+extern BOOL bShouldFS;
 
 struct n64hdr RomHeader;
 static char *zero = "";
@@ -48,21 +41,108 @@ void ToggleCPU (void);
 UINT CpuThreadProc(LPVOID);
 
 // Code remaining from eclipse
-void OnOpen(char* filename);
+bool OnOpen(char* filename);
 // end code remaining from eclipse
 
 LPEXCEPTION_POINTERS intelException;
 u64 nullMemory = 0;
 
+void DisassembleRange (u32 Start, u32 End);
+bool IgnoreErrors = false;
+extern u32 VsyncTime;
+extern u32 romsize;
+
+u32 ChangeProtectionLevel = PAGE_READONLY;
+u32 garbage;
+
 u32 HandleWin32Exception(LPEXCEPTION_POINTERS info) {
 	intelException = info;
 	extern u32 valloc;
+	static u64 nextLW;
+
+	//Debug (1, "Exception = %08X", info[0].ExceptionRecord[0].ExceptionCode);
+
 	if (info[0].ExceptionRecord[0].ExceptionCode==EXCEPTION_ACCESS_VIOLATION) {
-		Debug(0,L_STR(IDS_VIOLATION_ACCESS),(info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc);
-		Debug (0, "pc = %08X", pc-4);
-		cpuIsDone = true;
-		cpuIsReset = true;
-		cpuContextIsValid = false;
+		void PrintInterruptStatus ();
+			
+		if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) >= 0x10000000) {
+			if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) < 0x1FD00000)
+			Debug (0, "UnAuthorized ROM Access: %08X using opcode: %X", pc, sop.op);
+			if (sop.op == 0x2b) { // SW
+				u32 addr = (CpuRegs[sop.rs] + (s32)(s16)opcode);
+				nextLW = CpuRegs[sop.rt];
+				dprintf ("Writing %08X from location ", nextLW);
+				Debug (0, "%08X", addr);
+				ChangeProtectionLevel = PAGE_NOACCESS;
+				return EXCEPTION_EXECUTE_HANDLER;
+			}
+			if (sop.op == 0x23) { // LW
+				u32 addr = (CpuRegs[sop.rs] + (s32)(s16)opcode);
+				dprintf ("Reading %08X from location ", nextLW);
+				Debug (0, "%08X", addr);
+				CpuRegs[sop.rt] = nextLW;
+				ChangeProtectionLevel = PAGE_READONLY;
+				return EXCEPTION_EXECUTE_HANDLER;
+			}
+
+			pc-=4;
+			
+
+			Debug (0, "Write to ROM seemed to cause a problem");
+
+			ChangeProtectionLevel = PAGE_READONLY;
+			return EXCEPTION_EXECUTE_HANDLER;
+			//Debug (1, "This ROM is dead.");
+			//for (;;);
+			
+		} else if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) == 0x00800000) {
+			Debug (0, "Exception Trapped Expansion Pak Detection");
+			return EXCEPTION_EXECUTE_HANDLER;
+		} else if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) == 0x008FFFFC) {
+			Debug (0, "Exception Trapped Expansion Pak Detection");
+			return EXCEPTION_EXECUTE_HANDLER;
+		} else if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) == 0x00400000) {
+			Debug (0, "Exception Trapped 4MB Expansion Pak Detection 000");
+			return EXCEPTION_EXECUTE_HANDLER;
+		} else if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) == 0x004FFFFC) {
+			Debug (0, "Exception Trapped 4MB Expansion Pak Detection FFF");
+			return EXCEPTION_EXECUTE_HANDLER;
+		} else if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) > 0x00400000) {
+			if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) < 0x00800000)
+			return EXCEPTION_EXECUTE_HANDLER;
+		}
+/*
+		if (IgnoreErrors == false) {
+			PrintInterruptStatus ();
+			if (MessageBox (GhWnd, "Apollo is having problems with this ROM Image.  It is VERY UNLIKELY this rom will function. You may choose to continue or abort peacefully.\r\nDo you wish to continue?", WINTITLE, MB_YESNO | MB_ICONEXCLAMATION) == IDNO) {
+				cpuIsDone = true;
+				cpuIsReset = true;
+				cpuContextIsValid = false;
+				if (bFullScreen == TRUE) {
+					gfxdll.ChangeWindow ();
+					bFullScreen = FALSE;
+				}
+			} else {
+				IgnoreErrors = true;
+			}
+		}*/
+		
+			Debug(0,L_STR(IDS_VIOLATION_ACCESS),(info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc);
+			Debug (0, "pc = %08X", pc-4);
+			extern char *r4kreg[0x20];
+			for (int x = 0; x < 0x20; x++) {
+				Debug (0, "%s = %08X", r4kreg[x], CpuRegs[x]);
+			}
+/*
+		DisassembleRange (0xE0096580-0x2000, 0xE0096580+0x2000);
+		*/
+		//Debug (0, "instructions : %i / vsynctime : %i", instructions, VsyncTime);
+		//cpuIsDone = true;
+		//cpuIsReset = true;
+		//cpuContextIsValid = false;
+		//DisassembleRange (0x800D0000, 0x800D2000);
+		return EXCEPTION_EXECUTE_HANDLER;
+	} else if (info[0].ExceptionRecord[0].ExceptionCode==0xc0001337) {
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 	return EXCEPTION_CONTINUE_SEARCH;
@@ -77,7 +157,11 @@ void InitEmu () {
 	rInfo.CRC2 = 0;
 	rInfo.ExCRC1 = 0;
 	rInfo.ExCRC2 = 0;
-	InitMem ();
+	if (RegSettings.isPakInstalled == true) {
+		InitMem (8*1024*1024);
+	} else {
+		InitMem (4*1024*1024);
+	}
 
 	AdaptoidHandle = CreateFile( "\\\\.\\Wish_NA1",  // the name of the Adaptoid driver
             GENERIC_READ | GENERIC_WRITE,
@@ -90,46 +174,63 @@ void InitEmu () {
 	if (AdaptoidHandle == INVALID_HANDLE_VALUE) {
 		AdaptoidHandle = NULL;
 		nAdaptoids = 0;
-		Debug(0,L_STR(IDS_NO_ADAPTOID));
+		Debug(0, "No adaptoids found");
 	} else {
 		ReadFile(AdaptoidHandle, &nAdaptoids, 1, &nbytes, NULL);
-		Debug(0,L_STR(IDS_ADAPTOIDS_FOUND),nAdaptoids);
+		Debug(0, "%i adaptoid(s) found" ,nAdaptoids);
 	}
 
 }
+void ChangeRDRAMSize (int memsize);
 
 void OpenROM (char *filename) {
 	if (cpuContextIsValid == true)
 		StopCPU ();
-	OnOpen (filename);
-	handleCpuThread = CreateThread (NULL, NULL, (LPTHREAD_START_ROUTINE) CpuThreadProc, &dwThrdParam, CREATE_SUSPENDED, &dwThreadId);
-	handleAudioThread = CreateThread (NULL, NULL, (LPTHREAD_START_ROUTINE) AudioThreadProc, &dwAThrdParam, CREATE_SUSPENDED, &dwAThreadId);
-	cpuContextIsValid = true;
-	StartCPU ();
+	ChangeRDRAMSize (4*1024*1024 << (RegSettings.isPakInstalled ? 1 : 0));
+	if (OnOpen (filename) == true) {
+		RecentMenus (filename);
+		SaveSettings ();
+		handleCpuThread = CreateThread (NULL, NULL, (LPTHREAD_START_ROUTINE) CpuThreadProc, &dwThrdParam, CREATE_SUSPENDED, &dwThreadId);
+		handleAudioThread = CreateThread (NULL, NULL, (LPTHREAD_START_ROUTINE) AudioThreadProc, &dwAThrdParam, CREATE_SUSPENDED, &dwAThreadId);
+		cpuContextIsValid = true;
+		IgnoreErrors = false;
+		SaveChipOpen ();
+		StartCPU ();
+		Sleep (100);
+		if (bShouldFS == TRUE) {
+			Debug (0, "Going Full Screen");
+			bFullScreen = TRUE;
+			gfxdll.ChangeWindow();
+		}
+	} else {
+		Debug (1, "Unable to open %s", filename);
+	}
 }
-
+extern u32 dlists, alists;
 void StartCPU (void) {
 	if (cpuContextIsValid == false)
 		return;
 	cpuIsDone = false;
 	cpuIsPaused = false;
+	dlists=0; alists = 0;
 	ResumeThread (handleCpuThread);
 	ResumeThread (handleAudioThread);
 }
-
+//extern u32 eepDetectToggle;
 void StopCPU (void) {
 	int slpcntr=0;
+	//Debug (0, "EEPRom %08X", eepDetectToggle-1);
 	if (cpuContextIsValid == false)
 		return;
-	cpuIsDone = true;
-	cpuIsReset = true;
 	if (cpuIsPaused == true) {
 		ToggleCPU ();
 	}
+	cpuIsDone = true;
+	cpuIsReset = true;
 	while (handleCpuThread) {
-		Sleep (10);
+		Sleep (100);
 		slpcntr++;
-		if (slpcntr > 100) {
+		if (slpcntr > 10) {
 			TerminateThread(handleCpuThread,0);
 			Debug (0, L_STR(IDS_CPU_KILL));
 			handleCpuThread = NULL;
@@ -137,22 +238,24 @@ void StopCPU (void) {
 	}
 	slpcntr = 0;
 	while (handleAudioThread) {
-		Sleep (100);
+		PostThreadMessage (dwAThreadId, WM_QUIT, 0, 0);
+ 		Sleep (100);
 		slpcntr++;
-		if (slpcntr > 100) {
+		if (slpcntr > 10) {
 			TerminateThread(handleAudioThread,0);
 			Debug (0, L_STR(IDS_AUDIO_KILL));
 			handleAudioThread = NULL;
 		}
 	}
+	SaveChipClose ();
 	VirtualFree ((void*)(valloc+0x10000000),64*1024*1024,MEM_DECOMMIT);
 	cpuIsPaused = false;
 	cpuIsReset = false;
 	cpuContextIsValid = false;
 	handleCpuThread = NULL;
 	handleAudioThread = NULL;
-	if (slpcntr < 100)
-		Debug (0, L_STR(IDS_THREAD_DIE));
+/*	if (slpcntr < 100)
+		Debug (0, L_STR(IDS_THREAD_DIE));*/
 	SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) L_STR(IDS_EMU_STOPPED));
 }
 
@@ -161,58 +264,109 @@ void ToggleCPU (void) { // Toggles the pause state and unpause state
 		return;
 	if (cpuIsPaused == true) {
 		cpuIsPaused = false;
+		UNCHECK_MENU (ID_CPU_PAUSE);
 		ResumeThread (handleCpuThread);
-		ResumeThread (handleAudioThread);
-		Debug (0, L_STR(IDS_CPU_UNPAUSED));
-		SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) L_STR(IDS_EMU_STARTED));
+		//ResumeThread (handleAudioThread);
+		//Debug (0, L_STR(IDS_CPU_UNPAUSED));
+		//SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) L_STR(IDS_EMU_STARTED));
 	} else {
 		cpuIsPaused = true;
+		//cpuIsReset = true;
+		CHECK_MENU (ID_CPU_PAUSE);
 		SuspendThread (handleCpuThread);
-		SuspendThread (handleAudioThread);
-		Debug (0, L_STR(IDS_CPU_PAUSED));
-		SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) L_STR(IDS_EMU_PAUSED));
+		//SuspendThread (handleAudioThread);
+		//Debug (0, L_STR(IDS_CPU_PAUSED));
+		//SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) L_STR(IDS_EMU_PAUSED));
 	}
 }
 // End of the interfacing
 // Implementation functions below
 
 void ResetCPU ();
+void CPUEntry ();
 
-UINT CpuThreadProc(LPVOID) {/*
-	if (gfxdll.Load (RegSettings.vidDll) == FALSE) {
-		Debug(0,"Using Internal Functions for video...");
-		gfxdll.Load (".");// if it fails to load we still have the defaults...
+UINT CpuThreadProc(LPVOID) {
+	/*if ((gfxdll.Init == NULL) || (inpdll.InitiateControllers == NULL)) {
+		Debug (1, "Can't do emulation without plugins installed properly!!!");
+		ExitThread (-1);
+		return -1;
 	}*/
-	gfxdll.Init();
+//	gfxdll.Init();
 	gfxdll.RomOpen();
-	inpdll.InitiateControllers (GhWnd, ContInfo);
+	Debug (0, "Graphics Installed");
 	inpdll.RomOpen();
+	Debug (0, "Input Installed");
+	cpuLoadState = cpuSaveState = false;
+	ChangeProtectionLevel = PAGE_READONLY;
+	DWORD old = ChangeProtectionLevel;
+	bool cpuSelect = RegSettings.dynamicEnabled;
+
+    VirtualProtect((void *)(valloc+0x10000000), romsize, ChangeProtectionLevel, &old);
+
 	while (cpuIsDone == false) {
 		cpuIsReset = false;
 		ResetCPU ();
 		while (cpuIsReset == false) {
-			__try {
+			//__try {
+				if (ChangeProtectionLevel != old) {
+					VirtualProtect((void *)(valloc+0x10000000), romsize, ChangeProtectionLevel, &old); // Ok.. next read is bad
+					old = ChangeProtectionLevel;
+				}
 				Emulate ();
-			}__except ( HandleWin32Exception(GetExceptionInformation()) ) {
+			/*}__except ( HandleWin32Exception(GetExceptionInformation()) ) {
 					short* hh = (short*)intelException[0].ExceptionRecord[0].ExceptionAddress;
 					if (hh[0]==0x008B) {
 						intelException[0].ContextRecord[0].Eax = 0;
 						intelException[0].ContextRecord[0].Eip += 2;
 					} else if (hh[0]==0x0889) {
+						VirtualProtect((void *)(valloc+0x10000000), romsize, PAGE_NOACCESS, &old); // Ok.. next read is bad
 						intelException[0].ContextRecord[0].Eip += 2;
 					} else if (hh[0]==0x0888) {
 						intelException[0].ContextRecord[0].Eip += 2;
 					}
-			}
+			}//*/
+			// Save/Load States here
+				if (cpuIsPaused == true) {
+					cpuIsReset = false;
+					SuspendThread (handleCpuThread);
+				}
+				if (cpuSaveState == true) {
+					cpuSaveState = false;
+					cpuIsReset = false;
+					SaveState (); // SaveChips
+				}
+				if (cpuLoadState == true) {
+					cpuLoadState = false;
+					cpuIsReset = false;
+					gfxdll.RomClosed();
+					inpdll.RomClosed();
+					LoadState (); // SaveChips
+					gfxdll.RomOpen();
+					Debug (0, "Graphics Installed");
+					inpdll.RomOpen();
+					Debug (0, "Input Installed");
+					gfxdll.ViStatusChanged ();
+					gfxdll.ViWidthChanged ();
+					cpuLoadState = cpuSaveState = false;
+
+					ChangeProtectionLevel = PAGE_READONLY;
+				}
+				if (cpuSelect != RegSettings.dynamicEnabled) {
+					cpuSelect = RegSettings.dynamicEnabled;
+					cpuIsReset = false;
+				}
 		}
 	}
+	/*extern int OpcodeFreq[];
 	cpuIsReset = false;
+	for (int x=0; x < 0x40; x++) {
+		if (OpcodeFreq[x] != 0)
+			Debug (0, "Opcode %02X Executed %i times", x, OpcodeFreq[x]);
+	}*/
 	cpuIsReset = true;
 	gfxdll.RomClosed();
 	inpdll.RomClosed();
-	/*gfxdll.Close();
-	gfxdll.Load(".");*/
-	Debug(0,"Thread Exited normally");
+	Debug(0,"Cpu Thread Shutdown");
 	handleCpuThread = NULL;
 	ExitThread (0);
 	return 0;
@@ -221,14 +375,59 @@ UINT CpuThreadProc(LPVOID) {/*
 extern DWORD *DAI;
 
 UINT AudioThreadProc(LPVOID) { // Just until I get the sound plugin specs ;)
+	snddll.Init();
 	while (cpuIsDone == false) {
-//		DAI[1] = 0;
-//		DAI[3] = 0;
-		Sleep (1000);
+		if (snddll.AiUpdate) {
+			snddll.AiUpdate(TRUE);
+		} else {
+			handleAudioThread = NULL;
+			Debug (0, "Bad/No Audio plugin");
+			ExitThread (0);
+		}
 	}
+	snddll.RomClosed();
+	Debug (0, "Audio Thread Shutdown");
 	handleAudioThread = NULL;
 	ExitThread (0);
 	return 0;
+}
+
+FILE *zipopen (const char *fname, const char *flags);
+int zipclose (FILE *fp);
+int zipseek (FILE *fp, long offset, int flags);
+size_t zipread (void *data, size_t size, size_t count, FILE *fp);
+long ziptell (FILE *fp);
+
+bool isCompressed = false;
+int fileclose (FILE *fp) {
+	if (isCompressed == false) {
+		return fclose (fp);
+	} else {
+		return zipclose (fp);
+	}
+}
+size_t fileread (void *data, size_t size, size_t count, FILE *fp) {
+	if (isCompressed == false) {
+		return fread (data, size, count, fp);
+	} else {
+		return zipread (data, size, count, fp);
+	}
+}
+
+int fileseek (FILE *fp, long offset, int flags) {
+	if (isCompressed == false) {
+		return fseek (fp, offset, flags);
+	} else {
+		return zipseek (fp, offset, flags);
+	}
+}
+
+long filetell (FILE *fp) {
+	if (isCompressed == false) {
+		return ftell (fp);
+	} else {
+		return ziptell (fp);
+	}
 }
 
 // Code remaining from eclipse
@@ -239,9 +438,9 @@ UINT AudioThreadProc(LPVOID) { // Just until I get the sound plugin specs ;)
 bool CheckROM (FILE *romfp, int &swapped) {
 	memset(&RomHeader, 0, sizeof(RomHeader));
 
-	fread(&RomHeader.valid, 2, 1, romfp);
-	fread(&RomHeader.is_compressed, 1, 1, romfp);
-	fread(&RomHeader.unknown, 1, 1, romfp);
+	fileread(&RomHeader.valid, 2, 1, romfp);
+	fileread(&RomHeader.is_compressed, 1, 1, romfp);
+	fileread(&RomHeader.unknown, 1, 1, romfp);
 
 	if (RomHeader.valid == 0x8037) {
 		swapped = NORMAL_SWAP;
@@ -263,7 +462,7 @@ bool CheckROM (FILE *romfp, int &swapped) {
 			swapped = DWORD_SWAP;
 		} else {
 			MessageBox(GhWnd,L_STR(IDS_INVALID_ROM),WINTITLE,MB_OK);
-			fclose(romfp);
+			fileclose(romfp);
 			return false;
 		}		
 	}
@@ -295,7 +494,7 @@ void ReadInROM (FILE *romfp, int swapped, DWORD filesize) {
 
 	if (swapped == NORMAL_SWAP) {
 		for (i = 0; i < filesize; i += 32, j++) {	
-			fread(&RomMemory[i], 32, 1, romfp);
+			fileread (&RomMemory[i], 32, 1, romfp);
 
 			_asm {
 				mov edx, dword ptr RomMemory
@@ -334,14 +533,14 @@ void ReadInROM (FILE *romfp, int swapped, DWORD filesize) {
 			if (j==k) {
 				j=0;
 				percent += 10;
-				sprintf(buffer,L_STR(IDS_LOADED_NS), percent);				
+				sprintf(buffer, "Loading Rom: %i%%", percent);				
 				SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) buffer);
 			}
 		}
 		_asm emms
 	} else if (swapped == DWORD_SWAP) {
 		for (i = 0; i < filesize; i += 4, j++) {	
-			fread(&RomMemory[i], 4, 1, romfp);
+			fileread (&RomMemory[i], 4, 1, romfp);
 			_asm {
 				mov edx, dword ptr RomMemory
 				add edx, i
@@ -353,17 +552,17 @@ void ReadInROM (FILE *romfp, int swapped, DWORD filesize) {
 			if (j==k) {
 				j=0;
 				percent += 10;
-				sprintf(buffer,L_STR(IDS_LOADED_DS), percent);				
+				sprintf(buffer, "Loading Rom: %i%%", percent);				
 				SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) buffer);
 			}
 		}
 	} else if (swapped == WORD_SWAP) {
 		for (i = 0; i < filesize; i += 32, j++) {	
-			fread(&RomMemory[i], 32, 1, romfp);
+			fileread (&RomMemory[i], 32, 1, romfp);
 			if (j==k) {
 				j=0;
 				percent += 10;
-				sprintf(buffer,L_STR(IDS_LOADED_WS), percent);				
+				sprintf(buffer, "Loading Rom: %i%%", percent);				
 				SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) buffer);
 			}
 		}
@@ -372,8 +571,8 @@ void ReadInROM (FILE *romfp, int swapped, DWORD filesize) {
 
 extern u8* pif;
 
-void OnOpen(char* filename) {
-	if (filename==0) return;
+bool OnOpen(char* filename) {
+	if (filename==0) return false;
 	int swapped;
 	FILE *romfp;
 	FILE *pifrom = NULL;
@@ -388,18 +587,36 @@ void OnOpen(char* filename) {
 			break;
 		}
 	}
-	
-	romfp = fopen(filename,"rb");
+
+/*
+	pifrom = fopen ("d:\\emu\\n64\\pj643\\pifntsc.raw", "rb");
+	if (pifrom!=NULL) {
+		Debug (0, "Loaded pifrom from external source");
+		u32 temp;
+		for (int cntr=0; cntr < 496; cntr++) {
+			fread (&temp, 4, 1, pifrom);
+			*((DWORD *)pif+cntr) = SWAP_DWORD(temp);
+		}
+	}
+*/
+
+	if (stricmp(&filename[strlen(filename) - 4], ".zip") == 0) {
+		romfp = zipopen (filename, "rb");
+		isCompressed = true;
+	} else {
+		romfp = fopen(filename,"rb");
+		isCompressed = false;
+	}
+
 	if (romfp==NULL) {
-		Debug (1,L_STR(IDS_OPEN_FAILED),filename);
-		return;
+		return false;
 	}
 
 	if (CheckROM (romfp, swapped) == false)
-		return;
+		return false;
 
-	fseek(romfp, 0, SEEK_END);
-	filesize = ftell(romfp);
+	fileseek(romfp, 0, SEEK_END);
+	filesize = filetell(romfp);
 	GameSize = filesize;
 
 	SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) L_STR(IDS_MEM_ALLOC));
@@ -409,21 +626,22 @@ void OnOpen(char* filename) {
 	if (RomMemory == NULL) {
 		MessageBox(GhWnd, L_STR(IDS_MEM_ALLOC_ERROR), WINTITLE, MB_OK);
 		PostQuitMessage(0);
-		return;
+		return false;
 	}
 
 	memset(&RomMemory[0], 0, filesize);
 	
-	fseek(romfp, 0, SEEK_SET); // paranoia?
+	fileseek(romfp, 0, SEEK_SET); // paranoia?
 	
 	SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) L_STR(IDS_LOADING));
 
 	ReadInROM (romfp, swapped, filesize);
 
-	SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) L_STR(IDS_LOADED_100));
-	fclose(romfp);
+	SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)"Rom Loaded...");
+	fileclose(romfp);
 	
 	memcpy(&RomHeader, &RomMemory[0], sizeof(RomHeader));
+	//__asm int 3;
 	RomHeader.Program_Counter = SWAP_DWORD(RomHeader.Program_Counter);
 	RomHeader.CRC1 = SWAP_DWORD(RomHeader.CRC1);
 	RomHeader.CRC2 = SWAP_DWORD(RomHeader.CRC2);
@@ -451,7 +669,9 @@ void OnOpen(char* filename) {
 	memset(&MmuRegs, 0, sizeof(MmuRegs));
 	memset(&FpuRegs.w[0], 0, sizeof(FpuRegs));
 	memset(&FpuControl, 0, sizeof(FpuControl));
-	
+	void ResetFPU ();
+	ResetFPU ();
+
 	int dwThrdParam = 0;
 	unsigned long dwThreadId = 0;
 	Debug (0,L_STR(IDS_EMU_BEGIN),RomHeader.Country_Code,filename);
@@ -463,7 +683,18 @@ void OnOpen(char* filename) {
 		strcpy(rInfo.InternalName, filename2);
 
 	//ChangeMainText(rInfo.InternalName); TODO: hmmm
-	Debug (0, "RomTitle: %s", rInfo.InternalName);
+	i = strlen(rInfo.InternalName)-1;
+	while ((i > 0)) { // Trim this down for save stuff...
+		if (rInfo.InternalName[i] == 32) {
+			rInfo.InternalName[i] = '\0';
+		} else if ((rInfo.InternalName[i] == 255)) {
+			rInfo.InternalName[i] = '\0';
+		} else {
+			break;
+		}
+		i--;
+	}
+	return true;
 }
 
 // End Code remaining from eclipse

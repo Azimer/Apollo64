@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 /**************************************************************************
  *                                                                        *
  *               Copyright (C) 2000, Eclipse Productions                  *
@@ -58,14 +39,153 @@
 #include "WinMain.h"
 #include "EmuMain.h"
 #include "resource.h"
+#include "audiodll.h"
 
+
+// ****************** Interfacing for the Controller plugin ****************************
+
+AUDIODLL snddll;
+void SignalAiDone(void);
+
+static bool LoadFunctions () {
+	snddll.CloseDLL			 = (void (__cdecl*)( void		   )) GetProcAddress(snddll.hinstLibAudio, "CloseDLL");
+	snddll.DllAbout			 = (void (__cdecl*)( HWND          )) GetProcAddress(snddll.hinstLibAudio, "DllAbout");
+	snddll.DllConfig		 = (void (__cdecl*)( HWND          )) GetProcAddress(snddll.hinstLibAudio, "DllConfig");
+	snddll.DllTest			 = (void (__cdecl*)( HWND          )) GetProcAddress(snddll.hinstLibAudio, "DllTest");
+	snddll.ProcessAList		 = (void (__cdecl*)( void		   )) GetProcAddress(snddll.hinstLibAudio, "ProcessAList");
+	snddll.RomClosed		 = (void (__cdecl*)( void		   )) GetProcAddress(snddll.hinstLibAudio, "RomClosed");
+	snddll.InitiateAudio	 = (BOOL (__cdecl*)( AUDIO_INFO	   )) GetProcAddress(snddll.hinstLibAudio, "InitiateAudio");
+	snddll.GetDllInfo		 = (void (__cdecl*)( PLUGIN_INFO * )) GetProcAddress(snddll.hinstLibAudio, "GetDllInfo");
+	snddll.AiDacrateChanged	 = (void (__cdecl*)( int		   )) GetProcAddress(snddll.hinstLibAudio, "AiDacrateChanged");
+	snddll.AiLenChanged		 = (void (__cdecl*)( void		   )) GetProcAddress(snddll.hinstLibAudio, "AiLenChanged");
+	snddll.AiReadLength		 = (DWORD (__cdecl*)( void		   )) GetProcAddress(snddll.hinstLibAudio, "AiReadLength");
+	snddll.AiUpdate			 = (void (__cdecl*)( BOOL		   )) GetProcAddress(snddll.hinstLibAudio, "AiUpdate");
+
+	return true;
+}
+
+void CloseAudioPlugin () {
+  if(snddll.CloseDLL)
+	  snddll.CloseDLL();
+
+  if(snddll.hinstLibAudio)
+	  FreeLibrary(snddll.hinstLibAudio); 
+
+  ZeroMemory (&snddll, sizeof(AUDIODLL));
+}
+
+BOOL LoadAudioPlugin (char *libname) {
+	PLUGIN_INFO Plugin_Info;
+	ZeroMemory (&Plugin_Info, sizeof(Plugin_Info));
+
+	if (libname == NULL) {
+		return FALSE;
+	}
+	
+	if (snddll.hinstLibAudio != NULL) 
+		snddll.Close ();
+
+	snddll.hinstLibAudio = LoadLibrary(libname);
+
+	if (snddll.hinstLibAudio == NULL) {
+		Debug (0, "Could not load %s because it couldn't be found!", libname);
+		snddll.Close();
+		return FALSE;
+	}
+
+	snddll.GetDllInfo = (void (__cdecl*)(PLUGIN_INFO *)) GetProcAddress(snddll.hinstLibAudio, "GetDllInfo");
+	if(!snddll.GetDllInfo) {
+		Debug (0, "%s does not conform to the plugin spec.", libname);
+		return FALSE;//This isn't a plugin dll, so don't bother.	
+	}
+	snddll.GetDllInfo(&Plugin_Info);
+
+	if(Plugin_Info.Type == PLUGIN_TYPE_AUDIO) {
+		if(Plugin_Info.Version != PLUGIN_SND_VERSION) {
+			Debug (0, "%s is not compatable with Apollo. %X != %X", libname, Plugin_Info.Version, PLUGIN_INP_VERSION);
+			snddll.Close();
+			return FALSE;
+		}
+
+		if (LoadFunctions () == false) {
+			snddll.Close();
+			return FALSE;
+		}
+	} else {
+		//Here we insert Audio code, controller code, etc.
+		Debug (0, "%s dll isn't an Audio plugin!", libname);
+		snddll.Close();
+		return FALSE;
+	}
+	
+	return TRUE;
+}
+
+AUDIO_INFO SndInfo; // make it stay just in case the evil plugin doesn't store a local copy
+
+extern u8* rdram;
+extern u8* idmem;
+extern u8* MI;
+extern u8* AI;
+
+
+u32 DummyReg;
+
+void InitSNDPlugin () {
+
+	u32 FakeReg;
+
+	ZeroMemory (&SndInfo, sizeof(AUDIO_INFO));
+
+
+	SndInfo.hwnd					= GhWnd;
+	SndInfo.hinst					= GhInst;
+	SndInfo.MemoryBswaped			= TRUE;
+
+	SndInfo.HEADER					= RomMemory;
+	SndInfo.RDRAM					= rdram;
+	SndInfo.DMEM					= idmem;
+	SndInfo.IMEM					= (idmem+0x1000);
+
+	SndInfo.AI_DRAM_ADDR_REG	= (u32 *)(AI+0x00);
+	SndInfo.AI_LEN_REG			= (u32 *)(AI+0x04);
+	SndInfo.AI_CONTROL_REG		= (u32 *)(AI+0x08);
+	SndInfo.AI_STATUS_REG		= (u32 *)(AI+0x0C);
+	SndInfo.AI_DACRATE_REG		= (u32 *)(AI+0x10);
+	SndInfo.AI_BITRATE_REG		= (u32 *)(AI+0x14);
+	SndInfo.MI_INTR_REG			= (u32 *)(MI+0x08);
+
+	SndInfo.CheckInterrupts		= SignalAiDone;
+
+	if (snddll.InitiateAudio (SndInfo) == FALSE) {
+		CloseAudioPlugin ();
+		Debug (0, "Plugin Initialization Failed.");
+	}
+}
+
+void ScheduleEvent (u32, u32, u32, void *);
+
+#define AI_DMA_EVENT		0x5
+
+void SignalAiDone(void) {
+	//*SndInfo.AI_STATUS_REG |= 0x80000001;
+	//ScheduleEvent (AI_DMA_EVENT, 200, 0, NULL);
+	//if ((((u32*)MI)[3] & (((u32*)MI)[2])) & AI_INTERRUPT)
+	//((u32*)MI)[3] |= AI_INTERRUPT;
+	//((u32*)MI)[2] |= AI_INTERRUPT;
+	InterruptNeeded |= AI_INTERRUPT;
+	//Debug (0, "Audio Interrupt");
+}
+
+// ******************** END AUDIO STUFF **********************
+/*
 u32 AI_second_delay = 0;
 
 
 //#define ENABLEWAVE // Enabled wave logging
 
 #ifdef ENABLEWAVE
-bool Logging = true;
+bool Logging = false;
 
 FILE* audio = NULL;
 
@@ -221,3 +341,4 @@ void Soundmemcpy(void * dest, const void * src, size_t count) {
 	}
 }
 #endif
+*/

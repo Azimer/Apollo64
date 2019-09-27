@@ -1,28 +1,9 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 #ifndef WINMAIN_DOT_H
 #define WINMAIN_DOT_H
 
 #include <windows.h>
 
-#define WINTITLE "Apollo v0.01d Public Beta"
+#define WINTITLE "Apollo v0.10 Private Beta R1.5"
 #define LASTCOMPILED __DATE__
 
 #define CHECK_MENU(id)		CheckMenuItem(GhMenu, id, MF_CHECKED)
@@ -51,22 +32,22 @@
 
 // Common Structures
 typedef struct n64hdr {
-  u16  valid;
-  u8  is_compressed;
-  u8  unknown;
-  u32 Clockrate;
-  u32 Program_Counter;
-  u32 Release;
-  u32 CRC1;
-  u32 CRC2;
-  u64 filler1;
-  u8  Image_Name[20];
-  u8  uk1[8];
-  u8  filler2[7];
-  u8  Manu_ID;
-  u16  Cart_ID;
-  u8  Country_Code;
-  u8  filler3;
+  u16  valid; // 00
+  u8  is_compressed; // 02
+  u8  unknown; //03
+  u32 Clockrate; // 04
+  u32 Program_Counter; // 08
+  u32 Release; // 0C
+  u32 CRC1; // 10
+  u32 CRC2; // 14
+  u64 filler1; // 18
+  u8  Image_Name[20]; // 20-33
+  u8  uk1[7]; // 34-3a
+  //u8  filler2[7];
+  u8  Manu_ID; // 3b
+  u16  Cart_ID; // 3c
+  u8  Country_Code; // 3e
+  u8  filler3; //3f
   u32 BOOTCODE;
 } Header;
 
@@ -85,13 +66,20 @@ struct rSettings {
 	u32 Version; // Version of the settings (more then enough space)
 	int recentIndex;
 	char lastDir[127];
-	char lastRom[8][63];
+	char lastRom[8][100];
 	bool enableConsoleWindow;
 	bool enableConsoleLogging;
 	char vidDll[128];
 	char sndDll[128];
 	char inpDll[128];
-	//int rdpMode;
+	bool RumblePack;
+	int  recentSize;
+	bool compressSaveStates;
+	bool FullScreen;
+	int VSyncHack;
+	bool force4keep;
+	bool dynamicEnabled;
+	bool isPakInstalled;
 	//char ControllerConfig[4][21];//one more than needed
 	//char JoyConfig[4][21]; // Gamedevice configs
 	//int  GameDevices[4];   // Which gamedevices belong to what player
@@ -125,11 +113,20 @@ char* L_STR(int); //returns a string resource for use.
 
 // From console.cpp
 void dprintf (char* string, ...); // defined in console.cpp
-void Debug (int logtype, char *string, ...); // also defined in console.cpp
+#ifndef _FUCK
+extern "C" {
+#endif
+	void Debug (int logtype, char *string, ...); // also defined in console.cpp
+#ifndef _FUCK
+}
+#endif
+//void Debug (int logtype, char *string, ...); // also defined in console.cpp
 
 // From Settings.cpp
 void SaveSettings( void ); // Save Registry Settings
 void LoadSettings( void ); // Load Registry Settings
 int LoadCommandLine(char* commandLine);
+
+void RecentMenus( char *addition );
 
 #endif // WINMAIN_DOT_H

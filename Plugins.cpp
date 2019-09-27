@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 /**************************************************************************
  *                                                                        *
  *               Copyright (C) 2000, Eclipse Productions                  *
@@ -56,265 +37,360 @@
 #include "WinMain.h"
 #include "EmuMain.h"
 #include "videodll.h"
+#include "inputdll.h"
+#include "audiodll.h"
 #include "resource.h"
 
-VIDEODLL dlgPlugin;
-extern VIDEODLL internalGfxDll;
-extern bool cpuContextIsValid;
-char dlgPluginName[260];
-char Directory[260];
+#define PATHSIZE 260
+#define FILENAMESIZE 30
 
-void GetPluginDir(void) {
+#define MAX_VIDEO 20
+#define MAX_SOUND 20
+#define MAX_INPUT 20
+
+char dllpath[PATHSIZE];
+char dllsearch[PATHSIZE];
+
+int idxGFX = -1;
+int idxSND = -1;
+int idxINP = -1;
+
+int maxGFX = 0;
+int maxSND = 0;
+int maxINP = 0;
+
+char videoPlugins[MAX_VIDEO][FILENAMESIZE];
+char soundPlugins[MAX_SOUND][FILENAMESIZE];
+char inputPlugins[MAX_INPUT][FILENAMESIZE];
+
+void CreateSearchMask () {
 	char path_buffer[_MAX_PATH], drive[_MAX_DRIVE], dir[_MAX_DIR];
 	char fname[_MAX_FNAME],ext[_MAX_EXT];
+
 	GetModuleFileName(NULL,path_buffer,sizeof(path_buffer));
 	_splitpath(path_buffer,drive,dir,fname,ext);
-	strcpy(Directory,drive);
-	strcat(Directory,dir);
-	strcat(Directory,"*.dll");
+	strcpy (dllpath, drive);
+	strcat (dllpath, dir);
+	strcat (dllpath, "Plugin\\"); // TR64, PJ64, 1964 compatible
+	strcpy (dllsearch, dllpath);
+	strcat (dllsearch, "*.dll");
+	Debug (0, "Looking for plugins as: %s", dllsearch);
 }
 
-void QueryVideoPlugins(HWND hWnd, int combobox) {
-	u32 index = 0;
+
+bool CheckFilename (char *filename) {
 	WIN32_FIND_DATA finder;
-	VIDEODLL query;
-	PLUGIN_INFO Plugin_Info;
-	PLUGIN_INFO Plugin_Info_Current;
-	GetPluginDir();
-	gfxdll.GetDllInfo(&Plugin_Info_Current);
-	internalGfxDll.GetDllInfo(&Plugin_Info);
-	SendMessage(GetDlgItem(hWnd,combobox),CB_RESETCONTENT, 0,0);
-	index = SendMessage(GetDlgItem(hWnd,combobox),CB_ADDSTRING, 0,(LPARAM)Plugin_Info.Name);
-	if (!strcmp(Plugin_Info.Name,Plugin_Info_Current.Name)) {
-		SendMessage(GetDlgItem(hWnd,combobox),CB_SETCURSEL, (WPARAM)index, (LPARAM)0);
-	}
-	HANDLE findHandle = FindFirstFile(Directory,&finder);
-	if (findHandle) {
-		do {
-			if (strcmp(finder.cFileName,RegSettings.vidDll))
-				query.hinstLibVideo = LoadLibrary(finder.cFileName);
-			else query.hinstLibVideo = gfxdll.hinstLibVideo;
-			if (query.hinstLibVideo) {
-				query.GetDllInfo = (void (__cdecl*)(PLUGIN_INFO *)) GetProcAddress(query.hinstLibVideo, "GetDllInfo");
-				if (query.GetDllInfo) {
-					query.GetDllInfo(&Plugin_Info);
-					if (Plugin_Info.Version==0x0102 && Plugin_Info.Type==PLUGIN_TYPE_GFX) {
-						//Debug(0,"%s found as a Plugin",Plugin_Info.Name);
-						index = SendMessage(GetDlgItem(hWnd,combobox),CB_ADDSTRING, 0,(LPARAM)Plugin_Info.Name);
-						if (!strcmp(Plugin_Info.Name,Plugin_Info_Current.Name)) {
-							SendMessage(GetDlgItem(hWnd,combobox),CB_SETCURSEL, (WPARAM)index, (LPARAM)0);
-						}
-					} else {
-						char temp[10];
-						sprintf (temp, "%x", Plugin_Info.Version); 
-						Debug (0, "%s Not Gfx Plugin!",temp); 
-					}
-				}
-				if (strcmp(finder.cFileName,RegSettings.vidDll))
-					FreeLibrary(query.hinstLibVideo); 
+	HANDLE findHandle = FindFirstFile(dllsearch, &finder);
+	bool retVal = false;
+
+	if (findHandle != INVALID_HANDLE_VALUE) {
+		if (strcmp (filename, finder.cFileName) == 0)
+			retVal = true;
+		else
+			while (FindNextFile(findHandle, &finder)) {
+				if (strcmp (filename, finder.cFileName) == 0)
+					retVal = true;
 			}
-		} while (FindNextFile(findHandle,&finder)!=0);
-		FindClose(findHandle);
+		FindClose (findHandle);
+	}
+	return retVal;
+}
+
+
+void AddPluginToDialog (char *filename, HWND hWnd) {
+	HMODULE hInstLib = NULL;
+	PLUGIN_INFO Plugin;
+	char buffer[260];
+	DWORD index;
+
+	strcpy (buffer, dllpath);
+	strcat (buffer, filename);
+
+	hInstLib = LoadLibrary (buffer);
+	void (__cdecl* GetDllInfo)( PLUGIN_INFO * PluginInfo );
+
+	if (hInstLib) {
+		GetDllInfo = (void (__cdecl*)(PLUGIN_INFO *)) GetProcAddress(hInstLib, "GetDllInfo");
+		if (GetDllInfo) {
+			GetDllInfo (&Plugin);
+			switch (Plugin.Type) {
+				case PLUGIN_TYPE_RSP : // Type not supported...
+					break;
+				case PLUGIN_TYPE_GFX : // Graphics
+					if (((Plugin.Version == PLUGIN_GFX_VERSION) || (Plugin.Version == 0x0102))&& (maxGFX < MAX_VIDEO)) {
+						Debug (0, "%s is a Graphics Plugin...", filename);
+						SendMessage(GetDlgItem(hWnd, IDC_VIDEO_LIST), CB_INSERTSTRING, maxGFX, (LPARAM)Plugin.Name);
+						if (!strcmp(filename, RegSettings.vidDll)) {
+							SendMessage (GetDlgItem (hWnd, IDC_VIDEO_LIST), CB_SETCURSEL, (WPARAM)maxGFX, (LPARAM)0);
+							idxGFX = maxGFX;
+						}
+						strcpy (videoPlugins[maxGFX], filename);
+						maxGFX++;
+					} else {
+						Debug (0, "%s was Rejected Graphics Version %i", filename, Plugin.Version);
+					}
+					break;
+				case PLUGIN_TYPE_AUDIO : // Audio
+					if ((Plugin.Version == PLUGIN_SND_VERSION) && (maxSND < MAX_SOUND)) {
+						Debug (0, "%s is an Audio Plugin...", filename);
+						SendMessage(GetDlgItem(hWnd, IDC_AUDIO_LIST), CB_INSERTSTRING, maxSND, (LPARAM)Plugin.Name);
+						if (!strcmp(filename, RegSettings.sndDll)) {
+							SendMessage (GetDlgItem (hWnd, IDC_AUDIO_LIST), CB_SETCURSEL, (WPARAM)maxSND, (LPARAM)0);
+							idxSND = maxSND;
+						}
+						strcpy (soundPlugins[maxSND], filename);
+						maxSND++;
+					} else {
+						Debug (0, "%s was Rejected Sound Version %i", filename, Plugin.Version);
+					}
+					break;
+				case PLUGIN_TYPE_CONTROLLER : // Input
+					if ((Plugin.Version == PLUGIN_INP_VERSION) && (maxINP < MAX_INPUT)) { // We will accept all inputs right now
+						Debug (0, "%s is an Input Plugin...", filename);
+						SendMessage(GetDlgItem(hWnd, IDC_CONTROLLER_LIST), CB_INSERTSTRING, maxINP, (LPARAM)Plugin.Name);
+						if (!strcmp(filename, RegSettings.inpDll)) {
+							SendMessage (GetDlgItem (hWnd, IDC_CONTROLLER_LIST), CB_SETCURSEL, (WPARAM)maxINP, (LPARAM)0);
+							idxINP = maxINP;
+						}
+						strcpy (inputPlugins[maxINP], filename);
+						maxINP++;
+					} else {
+						Debug (0, "%s was Rejected Input Version %i", filename, Plugin.Version);
+					}
+					break;
+				default:
+					Debug (0, "%s is Unknown type %i...", filename, Plugin.Type);
+			}
+		}
+		FreeLibrary (hInstLib);
 	}
 }
-/*//*
+
 void QueryPlugins (HWND hWnd) {
+	char fuckyou[256];
+	PLUGIN_INFO CurrentPlugin;
+	
+	WIN32_FIND_DATA finder;
+
+	SendMessage(GetDlgItem(hWnd,IDC_CONTROLLER_LIST), CB_RESETCONTENT, 0, 0);
+	SendMessage(GetDlgItem(hWnd,IDC_AUDIO_LIST), CB_RESETCONTENT, 0, 0);
+	SendMessage(GetDlgItem(hWnd,IDC_VIDEO_LIST), CB_RESETCONTENT, 0, 0);
+	maxINP = maxSND = maxGFX = 0;
+	
+	HANDLE findHandle = FindFirstFile(dllsearch, &finder);
+	if (findHandle != INVALID_HANDLE_VALUE) {
+		strcpy (fuckyou, finder.cFileName);
+		AddPluginToDialog (fuckyou, hWnd);
+		while (FindNextFile(findHandle, &finder)) {
+			strcpy (fuckyou, finder.cFileName);
+			AddPluginToDialog (fuckyou, hWnd);
+		}
+		FindClose (findHandle);
+	}
+
+	if (idxGFX == -1) {
+		EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_CONFIG), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_TEST), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_ABOUT), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_APPLY), FALSE);
+	}
+	if (idxSND == -1) {
+		EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_CONFIG), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_TEST), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_ABOUT), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_APPLY), FALSE);
+	}
+	if (idxINP == -1) {
+		EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_CONFIG), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_TEST), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_ABOUT), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_APPLY), FALSE);
+	}
+}	
+
+BOOL CALLBACK PluginProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+void LoadPlugins () {
+	bool LaunchConfig = false;
+	char buffer[260];
+	
+	CreateSearchMask ();
+
+	if (CheckFilename (RegSettings.vidDll) == true) {
+		strcpy (buffer, dllpath);
+		strcat (buffer, RegSettings.vidDll); 
+		gfxdll.Load (buffer);
+		gfxdll.Init();
+		Debug (0, "Graphics plugin %s INITIALIZED!", RegSettings.vidDll);
+	} else {
+		strcpy (RegSettings.vidDll, "");
+		Debug (1, "Failed to load Graphics plugin...");
+		LaunchConfig = true;
+	}
+
+	if (CheckFilename (RegSettings.sndDll) == true) {
+		strcpy (buffer, dllpath);
+		strcat (buffer, RegSettings.sndDll); 
+		snddll.Load (buffer);
+		snddll.Init ();
+		Debug (0, "Audio DLL %s initialized!", RegSettings.sndDll);
+	} else {
+		strcpy (RegSettings.sndDll, "");
+		Debug (1, "Failed to load Audio plugin...");
+		LaunchConfig = true;
+	}
+
+	if (CheckFilename (RegSettings.inpDll) == true) {
+		strcpy (buffer, dllpath);
+		strcat (buffer, RegSettings.inpDll); 
+		inpdll.Load (buffer);
+		inpdll.InitiateControllers (GhWnd, ContInfo);
+		Debug (0, "Input plugin %s INITIALIZED!", RegSettings.inpDll);
+	} else {
+		strcpy (RegSettings.inpDll, "");
+		Debug (1, "Failed to load Input plugin...");
+		LaunchConfig = true;
+	}
+
+	if (LaunchConfig)
+		DialogBox(GhInst,MAKEINTRESOURCE(IDD_PLUGINS),GhWnd,(DLGPROC)PluginProc);
+}
+
+void UnLoadPlugins () {
+	gfxdll.Close();
+	snddll.Close();
+	inpdll.Close();
 }
 
 
 BOOL CALLBACK PluginProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	int MenuId;
+	int index;
+	char buffer[240];
 
 	switch (message) {
 		case WM_INITDIALOG: {
+			idxGFX = -1;
+			idxSND = -1;
+			idxINP = -1;
 			QueryPlugins (hWnd);
 			break;
 		}
 		case WM_COMMAND: {
 			MenuId = LOWORD(wParam);
 			switch (MenuId) {
-				case IDOK:
-				case IDCANCEL:
-				case ID_APPLY_ALL:
-				case ID_PLUGIN_VID_CONFIG:
-				case ID_PLUGIN_VID_TEST:
-				case ID_PLUGIN_VID_ABOUT:
-				case ID_PLUGIN_VID_APPLY:
-				case ID_PLUGIN_AUD_CONFIG:
-				case ID_PLUGIN_AUD_TEST:
-				case ID_PLUGIN_AUD_ABOUT:
-				case ID_PLUGIN_AUD_APPLY:
-				case ID_PLUGIN_CON_CONFIG:
-				case ID_PLUGIN_CON_TEST:
-				case ID_PLUGIN_CON_ABOUT:
-				case ID_PLUGIN_CON_APPLY:
-					break;
-			}
-		}
-	}
-	return FALSE;
-}*/
-
-BOOL CALLBACK PluginProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	int MenuId;
-	WIN32_FIND_DATA finder;
-	VIDEODLL query;
-	PLUGIN_INFO Plugin_Info;
-
-	switch(message)
-	{
-		case WM_INITDIALOG: {
-			memcpy(&dlgPlugin,&gfxdll,sizeof(VIDEODLL));
-			//put plugin find functions here.
-			QueryVideoPlugins(hWnd, IDC_VIDEO_LIST);
-			break;
-		}
-		case WM_COMMAND:
-			if (HIWORD(wParam)==CBN_SELCHANGE) {
-				SendMessage(GetDlgItem(hWnd,ID_PLUGIN_VID_APPLY),BM_SETSTYLE, (WPARAM)BS_PUSHBUTTON, (LPARAM)0);
-				SendMessage(GetDlgItem(hWnd,ID_APPLY_ALL),BM_SETSTYLE, (WPARAM)BS_PUSHBUTTON, (LPARAM)0);
-				HWND curSel = (HWND)lParam;
-				u32 index = SendMessage(curSel,CB_GETCURSEL,0,0);
-				if (!index) {
-					//using Internal Functions
-					strcpy(dlgPluginName,".");
-					memcpy(&dlgPlugin,&internalGfxDll,sizeof(VIDEODLL));
-				} else {
-					HANDLE findHandle = FindFirstFile(Directory,&finder);
-					if (findHandle) {
-						do {
-							if (strcmp(finder.cFileName,RegSettings.vidDll))
-								query.hinstLibVideo = LoadLibrary(finder.cFileName);
-							else query.hinstLibVideo = gfxdll.hinstLibVideo;
-							if (query.hinstLibVideo) {
-								query.GetDllInfo = (void (__cdecl*)(PLUGIN_INFO *)) GetProcAddress(query.hinstLibVideo, "GetDllInfo");
-								if (query.GetDllInfo) {
-									query.GetDllInfo(&Plugin_Info);
-									if (Plugin_Info.Version==0x0102 && Plugin_Info.Type==PLUGIN_TYPE_GFX) {
-										if (!(--index)) {
-											query.DllAbout  = (void (__cdecl*)(HWND)) GetProcAddress(query.hinstLibVideo, "DllAbout");
-											query.DllTest   = (void (__cdecl*)(HWND)) GetProcAddress(query.hinstLibVideo, "DllTest");
-											query.DllConfig = (void (__cdecl*)(HWND)) GetProcAddress(query.hinstLibVideo, "DllConfig");
-											strcpy(dlgPluginName,finder.cFileName);
-											memcpy(&dlgPlugin,&query,sizeof(VIDEODLL));
-										}
-									}
-								}
-//								if (strcmp(finder.cFileName,RegSettings.vidDll))
-//									FreeLibrary(query.hinstLibVideo); 
-							}
-						} while (FindNextFile(findHandle,&finder)!=0);
-						FindClose(findHandle);
+				case IDC_CONTROLLER_LIST: {
+					int index = 0;
+					if (HIWORD (wParam) == CBN_SELCHANGE) {
+						index = SendMessage ((HWND)lParam, CB_GETCURSEL, 0, 0);
+						if (index != idxINP) {
+							EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_CONFIG), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_TEST), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_ABOUT), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_APPLY),  TRUE);
+						} else {
+							EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_CONFIG), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_TEST), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_ABOUT), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_APPLY),  FALSE);
+						}
 					}
-				}
+				} break;
+				case IDC_AUDIO_LIST: {
+					int index = 0;
+					if (HIWORD (wParam) == CBN_SELCHANGE) {
+						index = SendMessage ((HWND)lParam, CB_GETCURSEL, 0, 0);
+						if (index != idxSND) {
+							EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_CONFIG), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_TEST), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_ABOUT), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_APPLY),  TRUE);
+						} else {
+							EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_CONFIG), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_TEST), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_ABOUT), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_APPLY),  FALSE);
+						}
+					}
+				} break;
+				case IDC_VIDEO_LIST: {
+					int index = 0;
+					if (HIWORD (wParam) == CBN_SELCHANGE) {
+						index = SendMessage ((HWND)lParam, CB_GETCURSEL, 0, 0);
+						if (index != idxGFX) {
+							EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_CONFIG), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_TEST), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_ABOUT), FALSE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_APPLY),  TRUE);
+						} else {
+							EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_CONFIG), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_TEST), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_ABOUT), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_APPLY),  FALSE);
+						}
+					}
+				} break;
+				case IDCANCEL:
+					EndDialog(hWnd,0);
+				case IDOK:
+				case ID_APPLY_ALL:
+				case ID_PLUGIN_VID_APPLY:
+					index = SendMessage (GetDlgItem(hWnd, IDC_VIDEO_LIST), CB_GETCURSEL, 0, 0);
+					if ((index != CB_ERR) && (index != idxGFX)) {
+						EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_CONFIG), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_TEST), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_ABOUT), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_VID_APPLY), FALSE);
+						idxGFX = index;
+						gfxdll.Close ();
+						strcpy (buffer, dllpath);
+						strcat (buffer, videoPlugins[index]);
+						gfxdll.Load (buffer);
+						gfxdll.Init();
+						strcpy (RegSettings.vidDll, videoPlugins[index]);
+					}
+					if (MenuId == ID_PLUGIN_VID_APPLY) break;
+				case ID_PLUGIN_AUD_APPLY:
+					index = SendMessage (GetDlgItem(hWnd, IDC_AUDIO_LIST), CB_GETCURSEL, 0, 0);
+					if ((index != CB_ERR) && (index != idxSND)) {
+						EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_CONFIG), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_TEST), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_ABOUT), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_AUD_APPLY), FALSE);
+						idxSND = index;
+						snddll.Close ();
+						strcpy (buffer, dllpath);
+						strcat (buffer, soundPlugins[index]);
+						snddll.Load (buffer);
+						snddll.Init();
+						strcpy (RegSettings.sndDll, soundPlugins[index]);
+					}
+					if (MenuId == ID_PLUGIN_AUD_APPLY) break;
+				case ID_PLUGIN_CON_APPLY:
+					index = SendMessage (GetDlgItem(hWnd, IDC_CONTROLLER_LIST), CB_GETCURSEL, 0, 0);
+					if ((index != CB_ERR) && (index != idxINP)) {
+						EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_CONFIG), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_TEST), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_ABOUT), TRUE); EnableWindow (GetDlgItem(hWnd, ID_PLUGIN_CON_APPLY), FALSE);
+						idxINP = index;
+						inpdll.Close ();
+						strcpy (buffer, dllpath);
+						strcat (buffer, inputPlugins[index]);
+						inpdll.Load (buffer);
+						inpdll.InitiateControllers (GhWnd, ContInfo);
+						strcpy (RegSettings.inpDll, inputPlugins[index]);
+					}
+					if (MenuId == IDOK) {
+						GhWndPlugin = NULL;
+						EndDialog(hWnd, 0);
+					}
+				break;
+
+				case ID_PLUGIN_VID_CONFIG:
+					if (gfxdll.DllConfig)
+						gfxdll.DllConfig (GhWnd);
+				break;
+				case ID_PLUGIN_VID_TEST:
+					if (gfxdll.DllTest)
+						gfxdll.DllTest (GhWnd);
+				break;
+				case ID_PLUGIN_VID_ABOUT:
+					if (gfxdll.DllAbout)
+						gfxdll.DllAbout (GhWnd);
+				break;
+
+				case ID_PLUGIN_AUD_CONFIG:
+					if (snddll.DllConfig)
+						snddll.DllConfig (GhWnd);
+				break;
+				case ID_PLUGIN_AUD_TEST:
+					if (snddll.DllTest)
+						snddll.DllTest (GhWnd);
+				break;
+				case ID_PLUGIN_AUD_ABOUT:
+					if (snddll.DllAbout)
+						snddll.DllAbout (GhWnd);
+				break;
+
+				case ID_PLUGIN_CON_CONFIG:
+					if (inpdll.DllConfig)
+						inpdll.DllConfig (GhWnd);
+				break;
+				case ID_PLUGIN_CON_TEST:
+					if (inpdll.DllTest)
+						inpdll.DllTest (GhWnd);
+				break;
+				case ID_PLUGIN_CON_ABOUT:
+					if (inpdll.DllAbout)
+						inpdll.DllAbout (GhWnd);
 				break;
 			}
-			MenuId = LOWORD(wParam);
-			if (MenuId == IDOK) {
-				if (memcmp(&dlgPlugin,&gfxdll,sizeof(VIDEODLL))) {
-					if (!cpuIsPaused && cpuContextIsValid) {
-						//pause
-						ToggleCPU();
-						//load plugin
-						gfxdll.Load(dlgPluginName);
-						gfxdll.Init();
-						gfxdll.RomOpen();
-						//unpause
-						ToggleCPU();
-					} else {
-						//load plugin
-						gfxdll.Load(dlgPluginName);
-						gfxdll.Init();
-					}
-				}
-				//save settings
-				//strcpy (RegSettings.vidDll, dlgPluginName);
-				HANDLE findHandle = FindFirstFile(Directory,&finder);
-				if (findHandle) {
-					do {
-						if (strcmp(finder.cFileName,RegSettings.vidDll))
-							query.hinstLibVideo = LoadLibrary(finder.cFileName);
-						else query.hinstLibVideo = gfxdll.hinstLibVideo;
-						if (query.hinstLibVideo) {
-							if (strcmp(finder.cFileName,RegSettings.vidDll))
-								FreeLibrary(query.hinstLibVideo); 
-						}
-					} while (FindNextFile(findHandle,&finder)!=0);
-					FindClose(findHandle);
-				}
-				EndDialog(hWnd,0);
-				GhWndPlugin = NULL;
-				return TRUE;
-			} else if (MenuId == IDCANCEL) {
-				HANDLE findHandle = FindFirstFile(Directory,&finder);
-				if (findHandle) {
-					do {
-						if (strcmp(finder.cFileName,RegSettings.vidDll))
-							query.hinstLibVideo = LoadLibrary(finder.cFileName);
-						else query.hinstLibVideo = gfxdll.hinstLibVideo;
-						if (query.hinstLibVideo) {
-							if (strcmp(finder.cFileName,RegSettings.vidDll))
-								FreeLibrary(query.hinstLibVideo); 
-						}
-					} while (FindNextFile(findHandle,&finder)!=0);
-					FindClose(findHandle);
-				}
-				EndDialog(hWnd,0);
-				GhWndPlugin = NULL;
-				return TRUE;
-			} else if (MenuId == ID_APPLY_ALL) {
-				if (memcmp(&dlgPlugin,&gfxdll,sizeof(VIDEODLL))) {
-					if (!cpuIsPaused && cpuContextIsValid) {
-						//pause
-						ToggleCPU();
-						//load plugin
-						gfxdll.Load(dlgPluginName);
-						gfxdll.Init();
-						gfxdll.RomOpen();
-						//unpause
-						ToggleCPU();
-					} else {
-						//load plugin
-						gfxdll.Load(dlgPluginName);
-						gfxdll.Init();
-					}
-				}
-				//save settings, grey out other 3 apply buttons.
-			} else if (MenuId == ID_PLUGIN_VID_CONFIG) {
-				if (dlgPlugin.DllConfig) dlgPlugin.DllConfig(hWnd);
-			} else if (MenuId == ID_PLUGIN_VID_TEST) {
-				if (dlgPlugin.DllTest) dlgPlugin.DllTest(hWnd);
-			} else if (MenuId == ID_PLUGIN_VID_ABOUT) {
-				if (dlgPlugin.DllAbout) dlgPlugin.DllAbout(hWnd);
-			} else if (MenuId == ID_PLUGIN_VID_APPLY) {
-				if (memcmp(&dlgPlugin,&gfxdll,sizeof(VIDEODLL))) {
-					if (!cpuIsPaused && cpuContextIsValid) {
-						//pause
-						ToggleCPU();
-						//load plugin
-						gfxdll.Load(dlgPluginName);
-						gfxdll.Init();
-						gfxdll.RomOpen();
-						//unpause
-						ToggleCPU();
-					} else {
-						//load plugin
-						gfxdll.Load(dlgPluginName);
-						gfxdll.Init();
-					}
-				}
-				//save settings, grey button
-			} else if (MenuId == ID_PLUGIN_AUD_CONFIG) {
-			} else if (MenuId == ID_PLUGIN_AUD_TEST) {
-			} else if (MenuId == ID_PLUGIN_AUD_ABOUT) {
-			} else if (MenuId == ID_PLUGIN_AUD_APPLY) {
-				//save settings, grey button
-			} else if (MenuId == ID_PLUGIN_CON_CONFIG) {
-			} else if (MenuId == ID_PLUGIN_CON_TEST) {
-			} else if (MenuId == ID_PLUGIN_CON_ABOUT) {
-			} else if (MenuId == ID_PLUGIN_CON_APPLY) {
-				//save settings, grey button
-			}
+		}
 	}
 	return FALSE;
 }

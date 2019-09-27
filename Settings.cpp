@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 /**************************************************************
   Settings.cpp - Registry Settings and INI/Config stuff
 
@@ -34,9 +15,9 @@
 #include "WinMain.h"
 #include <d3d.h>
 
-#define RegVersion 0x0002 // Version 1 (Version 0 was Eclipse)
+#define RegVersion 0x0003 // Version 1 (Version 0 was Eclipse)
 
-unsigned char DefaultControllerConfig[21] = { 0x1C, 0x36, 0x1e, 0x2c, 0xc8, 0xd0, 0xcb, 0xcd, 0x10, 0x11, 0x1f, 0x20, 0x2d, 0x12, 0x33, 0x34, 0xc8, 0xd0, 0xcb, 0xcd, 0x00 };
+//unsigned char DefaultControllerConfig[21] = { 0x1C, 0x36, 0x1e, 0x2c, 0xc8, 0xd0, 0xcb, 0xcd, 0x10, 0x11, 0x1f, 0x20, 0x2d, 0x12, 0x33, 0x34, 0xc8, 0xd0, 0xcb, 0xcd, 0x00 };
 
 void LoadSettings( void ) {
 	HKEY settings;
@@ -46,7 +27,12 @@ void LoadSettings( void ) {
 	memset(&RegSettings,0,sizeof(struct rSettings));
 	RegSettings.enableConsoleWindow = false;
 	RegSettings.enableConsoleLogging = false;
-	strcpy (RegSettings.vidDll, ".");
+	RegSettings.compressSaveStates = true;
+	RegSettings.VSyncHack = 1;
+	RegSettings.force4keep = false;
+	RegSettings.dynamicEnabled = false;
+	RegSettings.isPakInstalled = true;
+
 	// Load up the defaults
 	//RegSettings.rdpMode = 0;// TODO: In eclipse it was D3D_HAL... will this still apply to us?
 	//RegSettings.Disabled[1] = RegSettings.Disabled[2] = RegSettings.Disabled[3] = 1;
@@ -56,7 +42,7 @@ void LoadSettings( void ) {
 	RegQueryValueEx(settings,"regSize",NULL,NULL,(unsigned char*)&size,&resultsize);
 	if (size==0) {
 		//First time running on this computer...display discalimer.
-		if(MessageBox(0,L_STR(IDS_DISCLAIMER),WINTITLE,MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2)==IDNO) {
+		if(MessageBox(0,"This program does not have any warranty, expressed or implied, and the authors cannot be held liable for any damage to your hardware, software, or life. The authors distribute this program under the terms that the user will be held liable for all uses and abuses of the emulator. This software is also supplied under the condition any reverse engineering, decompiling, disassembling, and all like abuses to this executable will not take place. Do you agree to these terms?",WINTITLE,MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2)==IDNO) {
 			PostQuitMessage(0);
 			return;
 		}
@@ -71,23 +57,11 @@ void LoadSettings( void ) {
 		RegQueryValueEx(settings,"registry",NULL,NULL,(unsigned char*)&RegSettings,&size);
 	}
 	RegCloseKey(settings);
+	RegSettings.force4keep = false; // This option should never be set by default!!!
 	if (RegVersion != RegSettings.Version)
-		if (MessageBox (GhWnd, L_STR(IDS_SETTING_OLD), "Registry Settings are old/been modified", MB_YESNO | MB_ICONWARNING) == IDYES)
+		if (MessageBox (GhWnd, "Before using the emulator, please double check your configuration settings.\n\r\n\r  Do you wish to use the defaults settings (Strongly Recommended)?", "Registry Settings are missing, old, or have been modified", MB_YESNO | MB_ICONWARNING) == IDYES)
 			return;
-	strcpy (RegSettings.inpDll, "input.dll");
-/*
-	for (int numcont = 0; numcont < 4; numcont++) {
-		for (i=0; i < 21; i++) {
-			N64KeyToPcKey[numcont][i] = RegSettings.ControllerConfig[numcont][i];
-			N64KeyToJoy[numcont][i] = RegSettings.JoyConfig[numcont][i];
-		}
-		MempackEnabled[numcont] = RegSettings.MemoryPack[numcont];
-		RumblepackEnabled[numcont] = RegSettings.RumblePack[numcont];
-		UseJoyForAnalog[numcont] = RegSettings.UseJoyForAnalog[numcont];
-		JoyIsDisabled[numcont] = RegSettings.Disabled[numcont];
-		CurrentJoy[numcont] = RegSettings.CurrentJoy[numcont];
-	}
-*/
+
 }
 
 void SaveSettings( void ) {
@@ -95,19 +69,7 @@ void SaveSettings( void ) {
 	int size = sizeof(struct rSettings);
 	HKEY settings;
 	unsigned long result;
-/*
-	for (int numcont = 0; numcont < 4; numcont++) {
-		for (i=0; i < 21; i++) {
-			RegSettings.ControllerConfig[numcont][i]=N64KeyToPcKey[numcont][i];
-			RegSettings.JoyConfig[numcont][i]=N64KeyToJoy[numcont][i];
-		}
-		RegSettings.MemoryPack[numcont] = MempackEnabled[numcont];
-		RegSettings.RumblePack[numcont] = RumblepackEnabled[numcont];
-		RegSettings.UseJoyForAnalog[numcont] = UseJoyForAnalog[numcont];
-		RegSettings.Disabled[numcont] = JoyIsDisabled[numcont];
-		RegSettings.CurrentJoy[numcont] = CurrentJoy[numcont];
-	}
-*/
+
 	RegSettings.Version = RegVersion;
 	RegCreateKeyEx(HKEY_LOCAL_MACHINE,"Software\\Apollo\\Data",0,0,REG_OPTION_NON_VOLATILE,
 					KEY_ALL_ACCESS,NULL,&settings,&result);
@@ -115,7 +77,7 @@ void SaveSettings( void ) {
 	RegSetValueEx(settings,"registry",NULL,REG_BINARY,(unsigned char*)&RegSettings,size);
 	RegCloseKey(settings);
 }
-/* Disabled Language Support...
+/*
 int LoadCommandLine(char* commandLine) {
 	extern int LangUsed;
 	int i=0;

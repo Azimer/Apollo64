@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 // Everything below this is from the old CPU/Memory
 // TODO: Figure out what NEEDS to be here after the dynarec is installed!
 // TODO: Reorganize this once I open the source to phro
@@ -25,22 +6,24 @@
 #define MIN(a, b)				((a) < (b) ? (a) : (b))
 #endif
 
-extern volatile char InterruptNeeded;
+extern char InterruptNeeded;
 
 //in cpu.cpp
 extern QWORD CpuRegs[32];
-extern QWORD MmuRegs[32];
+extern DWORD MmuRegs[32];
 //extern DWORD FpuRegs[32];
 extern DWORD FpuControl[32];
+extern void *FPRDoubleLocation[32];
+extern void *FPRFloatLocation[32];
 //extern QWORD cpuHi;
 //extern QWORD cpuLo;
 extern SQWORD cpuHi;
 extern SQWORD cpuLo;
-extern volatile DWORD pc;
+extern DWORD pc;
 extern DWORD instructions;
 void Emulate( void );
 void CheckInterrupts(void);
-void InitMem( void );
+void InitMem( int );
 extern BYTE*  idmem;
 extern DWORD GameSize;
 extern BYTE* RomMemory;
@@ -48,8 +31,10 @@ extern BYTE* RomMemory;
 typedef union {
 	s32		w[32];
 	float	s[32];
-	double	d[16];
-	s64		l[16];
+	double	d[32];
+	s64		l[32];
+	s32		W[32][2];
+	s64		DW[32];
 } R4K_FPU_union;
 extern R4K_FPU_union FpuRegs;
 
@@ -103,8 +88,9 @@ void KillMemory(void);
 extern u32 valloc;
 
 
-u32 VirtualToPhysical(u32 addr);
+u32 VirtualToPhysical(u32 addr, int type);
 u32 CookData(u32 addr, u32 data);
+u32 ReadData(u32 addr);
 //Memory Module Interface
 
 //11 is swapped mem, 8 is unswapped mem
@@ -118,39 +104,48 @@ inline u16 pr16(u32 location) { return ((u16*)returnMemPointer(location^2))[0]; 
 inline u32 pr32(u32 location) { return ((u32*)returnMemPointer(location))[0]; }
 inline u64 pr64(u32 location) { return ((u32*)returnMemPointer(location))[1] | ((QWORD)((u32*)returnMemPointer(location))[0] << 32); }
 
-inline u8  vr8 (u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location); return ((u8*)returnMemPointer(location^3))[0]; }
-inline u16 vr16(u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location); return ((u16*)returnMemPointer(location^2))[0]; }
-inline u32 vr32(u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location); return ((u32*)returnMemPointer(location))[0]; }
-inline u64 vr64(u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location); return ((u32*)returnMemPointer(location))[1] | ((QWORD)((u32*)returnMemPointer(location))[0] << 32);}
-
+inline u8  vr8 (u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 0); return ((u8*)returnMemPointer(location^3))[0]; }
+inline u16 vr16(u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 0); return ((u16*)returnMemPointer(location^2))[0]; }
+//inline u32 vr32(u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 0); return ((u32*)returnMemPointer(location))[0];}
+inline u32 vr32(u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 0); if (location & 0x04000000) return ReadData(location); else return ((u32*)returnMemPointer(location))[0];}
+inline u64 vr64(u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 0); return ((u32*)returnMemPointer(location))[1] | ((QWORD)((u32*)returnMemPointer(location))[0] << 32);}
+//*/
+/*
+inline u8  vr8 (u32 location) { return ((u8*)returnMemPointer(location^3))[0]; }
+inline u16 vr16(u32 location) { return ((u16*)returnMemPointer(location^2))[0]; }
+inline u32 vr32(u32 location) { return ((u32*)returnMemPointer(location))[0];}
+//inline u32 vr32(u32 location) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 0); if (location & 0x04000000) return ReadData(location); else return ((u32*)returnMemPointer(location))[0];}
+inline u64 vr64(u32 location) { return ((u32*)returnMemPointer(location))[1] | ((QWORD)((u32*)returnMemPointer(location))[0] << 32);}
+*/
 inline void pw8 (u32 location, u8  data) { ((u8*)returnMemPointer(location^3))[0] = data; }
 inline void pw16(u32 location, u16 data) { ((u16*)returnMemPointer(location^2))[0] = data; }
-inline void pw32(u32 location, u32 data) { if ((location & 0x1f000000) == 0x04000000) data = CookData(location,data); ((u32*)returnMemPointer(location))[0] = data; }
+inline void pw32(u32 location, u32 data) { if (location & 0x0C000000) data = CookData(location,data); ((u32*)returnMemPointer(location))[0] = data; }
 inline void pw64(u32 location, u64 data) { ((u32*)returnMemPointer(location))[1] = (u32)data; ((u32*)returnMemPointer(location))[0] = (u32)(data >> 32); }
 
-inline void vw8 (u32 location, u8  data) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location); ((u8*)returnMemPointer(location^3))[0] = data; }
-inline void vw16(u32 location, u16 data) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location); ((u16*)returnMemPointer(location^2))[0] = data; }
-inline void vw32(u32 location, u32 data) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location); if ((location & 0x1f000000) == 0x04000000) data = CookData(location,data); ((u32*)returnMemPointer(location))[0] = data; }
-inline void vw64(u32 location, u64 data) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location); ((u32*)returnMemPointer(location))[1] = (u32)data; ((u32*)returnMemPointer(location))[0] = (u32)(data >> 32); }
+inline void vw8 (u32 location, u8  data) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 1); ((u8*)returnMemPointer(location^3))[0] = data; }
+inline void vw16(u32 location, u16 data) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 1); ((u16*)returnMemPointer(location^2))[0] = data; }
+inline void vw32(u32 location, u32 data) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 1); if (location & 0x0C000000) data = CookData(location,data); ((u32*)returnMemPointer(location))[0] = data; }
+inline void vw64(u32 location, u64 data) { if ((location ^ 0x80000000) & 0xC0000000) location = VirtualToPhysical(location, 1); ((u32*)returnMemPointer(location))[1] = (u32)data; ((u32*)returnMemPointer(location))[0] = (u32)(data >> 32); }
+//*/
+/*
+inline void vw8 (u32 location, u8  data) { ((u8*)returnMemPointer(location^3))[0] = data; }
+inline void vw16(u32 location, u16 data) { ((u16*)returnMemPointer(location^2))[0] = data; }
+inline void vw32(u32 location, u32 data) { if (location & 0x0C000000) data = CookData(location,data); ((u32*)returnMemPointer(location))[0] = data; }
+inline void vw64(u32 location, u64 data) { ((u32*)returnMemPointer(location))[1] = (u32)data; ((u32*)returnMemPointer(location))[0] = (u32)(data >> 32); }
+*/
 // End of eclipse code
 
 // CPU Externs
 #define opcode (((u32*)&sop)[0])
 extern bool volatile cpuIsDone;
 extern bool volatile cpuIsReset;
+extern bool volatile cpuSaveState;
+extern bool volatile cpuLoadState;
 extern bool cpuIsPaused;
 void OpenROM (char *filename);
 void StopCPU (void);
 void ToggleCPU (void);
 void InitEmu ();
-
-/*
-//from Dynarec Central.cpp
-void EnterIntoDynamicMode(void);
-extern bool cpuDynarecTlb;
-extern bool cpuDynarecMod;
-extern bool dynamicEnabled;
-*/
 
 //from rcp.cpp
 void SignalRSP(DWORD *data);

@@ -1,22 +1,3 @@
-/*
-    Apollo N64 Emulator (c) Eclipse Productions
-    Copyright (C) 2001 Azimer (azimer@emulation64.com)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 #ifndef __PLUGIN_DOT_H__
 #define __PLUGIN_DOT_H__
 
@@ -31,9 +12,9 @@
 #define SYSTEM_PAL					1
 #define SYSTEM_MPAL					2
 
-#define PLUGIN_GFX_VERSION			0x0102
+#define PLUGIN_GFX_VERSION			0x0103
 #define PLUGIN_INP_VERSION			0x0100
-#define PLUGIN_SND_VERSION			0x0100
+#define PLUGIN_SND_VERSION			0x0101
 
 
 /***** Structures *****/
@@ -48,30 +29,6 @@ typedef struct {
 	BOOL MemoryBswaped;  /* a normal BYTE array where the memory has been pre
 	                          bswap on a dword (32 bits) boundry */
 } PLUGIN_INFO;
-
-
-typedef struct {
-	HWND hwnd;
-	HINSTANCE hinst;
-
-	int  SystemType;	   /* see defines above for avaliable values */
-	BOOL MemoryBswaped;    /* If this is set to TRUE, then the memory has been pre
-	                          bswap on a dword (32 bits) boundry */
-	BYTE * RDRAM;
-	BYTE * DMEM;
-	BYTE * IMEM;
-
-	DWORD * MI_INTR_REG;
-
-	DWORD * AI_DRAM_ADDR_REG;
-	DWORD * AI_LEN_REG;
-	DWORD * AI_CONTROL_REG;
-	DWORD * AI_STATUS_REG;
-	DWORD * AI_DACRATE_REG;
-	DWORD * AI_BITRATE_REG;
-
-	void (*CheckInterrupts)( void );
-} AUDIO_INFO;
 
 typedef struct {
 	HWND hWnd;			/* Render window */
@@ -151,5 +108,33 @@ typedef union {
 	};
 } BUTTONS;
 
+typedef struct {
+	HWND hwnd;
+	HINSTANCE hinst;
+
+	BOOL MemoryBswaped;    // If this is set to TRUE, then the memory has been pre
+	                       //   bswap on a dword (32 bits) boundry 
+						   //	eg. the first 8 bytes are stored like this:
+	                       //        4 3 2 1   8 7 6 5
+	BYTE * HEADER;	// This is the rom header (first 40h bytes of the rom
+					// This will be in the same memory format as the rest of the memory.
+	BYTE * RDRAM;
+	BYTE * DMEM;
+	BYTE * IMEM;
+
+	DWORD * MI_INTR_REG;
+
+	DWORD * AI_DRAM_ADDR_REG;
+	DWORD * AI_LEN_REG;
+	DWORD * AI_CONTROL_REG;
+	DWORD * AI_STATUS_REG;
+	DWORD * AI_DACRATE_REG;
+	DWORD * AI_BITRATE_REG;
+
+	void (*CheckInterrupts)( void );
+} AUDIO_INFO;
+
+void LoadPlugins ();
+void UnLoadPlugins ();
 
 #endif // __PLUGIN_DOT_H__
