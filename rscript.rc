@@ -1,0 +1,551 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+ID_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&Open Rom...",                ID_FILE_OPEN
+        MENUITEM "&Close Rom",                  ID_FILE_CLOSE
+        POPUP "&Recent", GRAYED
+        BEGIN
+            MENUITEM "None.",                       ID_FILE_RECENT_FILE
+            , GRAYED
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Rom &Info...",                ID_FILE_ROMINFO, GRAYED
+        MENUITEM "&Screenshot",                 ID_FILE_SCREENSHOT, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "&Exit\aESC",                  ID_FILE_EXIT
+    END
+    POPUP "&Cpu"
+    BEGIN
+        POPUP "&Dynarec", GRAYED
+        BEGIN
+            MENUITEM "&Enabled",                    ID_CPU_DYNAREC_ENABLED
+            , CHECKED
+            MENUITEM "ROM Uses &TLB",               ID_CPU_DYNAREC_ROMTLB
+            MENUITEM "ROM is self-&modifying",      ID_CPU_DYNAREC_ROMMOD
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "R4K Debugger",                ID_CPU_R4KDEBUGGER, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "&Reset",                      ID_CPU_RESET
+        MENUITEM "&Pause",                      ID_CPU_PAUSE
+        MENUITEM SEPARATOR
+        MENUITEM "S&ave State",                 ID_CPU_SAVESTATE, GRAYED
+        MENUITEM "&Load State",                 ID_CPU_LOADSTATE, GRAYED
+    END
+    POPUP "&Options"
+    BEGIN
+        MENUITEM "Plugins",                     ID_OPTIONS_CONTROLLER
+        MENUITEM SEPARATOR
+        MENUITEM "&Video",                      ID_OPTIONS_VIDEO
+        MENUITEM "&Input",                      ID_OPTION_INPUT
+        MENUITEM "&Sound",                      ID_OPTIONS_SOUND
+        MENUITEM SEPARATOR
+        MENUITEM "320x240",                     ID_OPTIONS_320
+        MENUITEM "640x480",                     ID_OPTIONS_640
+        MENUITEM "800x600",                     ID_OPTIONS_800
+    END
+    POPUP "&Debug"
+    BEGIN
+        MENUITEM "&Toggle Console",             ID_CONSOLE_TOGGLE, CHECKED
+        MENUITEM "&Save Console Log",           ID_CONSOLE_SAVELOG, GRAYED
+        MENUITEM "C&lear Console",              ID_CONSOLE_CLEAR
+        MENUITEM "&Console Logging",            ID_CONSOLE_LOG
+        , CHECKED, GRAYED
+    END
+    POPUP "Help"
+    BEGIN
+        MENUITEM "&About...",                   ID_HELP_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DLGABOUT DIALOGEX 0, 0, 202, 159
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDCANCEL,78,142,50,14
+    CTEXT           "We would like to thank these people for their help: \n\nMike Tedder, Niki Waibel, Zilmar, hWnd, LaC, F|RES, icepir8, schibo, TNSe, and everyone who I forgot.\n\nAnd a special thanks to Jabo.  Without him, Apollo would have never existed.",
+                    IDC_STATIC,8,37,186,63,0,WS_EX_TRANSPARENT
+    LTEXT           "Apollo - Private Beta 0.01c for Win9x/NT",IDC_WINTITLE,
+                    38,6,155,8
+    ICON            IDI_APOLLO,IDC_STATIC,11,5,20,20
+    LTEXT           "Azimer, Phrodide (quit)",IDC_STATIC,78,130,71,8
+    LTEXT           "Compiled:",IDC_STATIC,60,103,32,8
+    LTEXT           "Copyright © 2000 Eclipse Productions",IDC_STATIC,38,17,
+                    124,8
+    LTEXT           "May 19, 2000",IDC_LASTCOMP,92,103,44,8
+    GROUPBOX        "",IDC_STATIC,9,27,183,74,0,WS_EX_TRANSPARENT
+    CTEXT           "××  Authors  ××",IDC_STATIC,77,116,56,10,SS_SUNKEN
+END
+
+IDD_PLUGINS DIALOG DISCARDABLE  0, 0, 257, 204
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Plugin Selection"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,93,178,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,147,178,50,14
+    COMBOBOX        IDC_VIDEO_LIST,49,23,175,48,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Video:",IDC_STATIC,9,24,38,11
+    PUSHBUTTON      "Configure",ID_PLUGIN_VID_CONFIG,25,40,50,14
+    PUSHBUTTON      "Test",ID_PLUGIN_VID_TEST,75,40,50,14
+    PUSHBUTTON      "About",ID_PLUGIN_VID_ABOUT,125,40,50,14
+    PUSHBUTTON      "Apply",ID_PLUGIN_VID_APPLY,175,40,50,14,WS_DISABLED
+    GROUPBOX        "",IDC_STATIC,7,7,243,53
+    COMBOBOX        IDC_AUDIO_LIST,49,75,175,48,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Audio:",IDC_STATIC,9,76,38,11
+    PUSHBUTTON      "Configure",ID_PLUGIN_AUD_CONFIG,25,92,50,14
+    PUSHBUTTON      "Test",ID_PLUGIN_AUD_TEST,75,92,50,14
+    PUSHBUTTON      "About",ID_PLUGIN_AUD_ABOUT,125,92,50,14
+    PUSHBUTTON      "Apply",ID_PLUGIN_AUD_APPLY,175,92,50,14,WS_DISABLED
+    GROUPBOX        "",IDC_STATIC,7,59,243,53
+    COMBOBOX        IDC_CONTROLLER_LIST,49,128,175,48,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Input:",IDC_STATIC,9,129,38,11
+    PUSHBUTTON      "Configure",ID_PLUGIN_CON_CONFIG,25,145,50,14
+    PUSHBUTTON      "Test",ID_PLUGIN_CON_TEST,75,145,50,14
+    PUSHBUTTON      "About",ID_PLUGIN_CON_ABOUT,125,145,50,14
+    PUSHBUTTON      "Apply",ID_PLUGIN_CON_APPLY,175,145,50,14,WS_DISABLED
+    GROUPBOX        "",IDC_STATIC,7,112,243,53
+    PUSHBUTTON      "Apply All",ID_APPLY_ALL,200,178,50,14
+END
+
+IDD_REGS DIALOGEX 0, 0, 185, 262
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "r4300i Registers"
+FONT 8, "Courier New", 0, 0, 0x1
+BEGIN
+    LTEXT           "(00) 00000000 00000000 R0",IDC_REG00,8,14,173,8
+    LTEXT           "(01) 00000000 00000000 AT",IDC_REG01,8,21,173,8
+    LTEXT           "(02) 00000000 00000000 V0",IDC_REG02,8,28,173,8
+    LTEXT           "(03) 00000000 00000000 V1",IDC_REG03,8,35,173,8
+    LTEXT           "(04) 00000000 00000000 A0",IDC_REG04,8,42,173,8
+    LTEXT           "(05) 00000000 00000000 A1",IDC_REG05,8,49,173,8
+    LTEXT           "(06) 00000000 00000000 A2",IDC_REG06,8,56,173,8
+    LTEXT           "(07) 00000000 00000000 A3",IDC_REG07,8,63,173,8
+    LTEXT           "(08) 00000000 00000000 T0",IDC_REG08,8,70,173,8
+    LTEXT           "(09) 00000000 00000000 T1",IDC_REG09,8,77,173,8
+    LTEXT           "(0A) 00000000 00000000 T2",IDC_REG0A,8,84,173,8
+    LTEXT           "(0B) 00000000 00000000 T3",IDC_REG0B,8,91,173,8
+    LTEXT           "(0C) 00000000 00000000 T4",IDC_REG0C,8,98,173,8
+    LTEXT           "(0D) 00000000 00000000 T5",IDC_REG0D,8,105,173,8
+    LTEXT           "(0E) 00000000 00000000 T6",IDC_REG0E,8,112,173,8
+    LTEXT           "(0F) 00000000 00000000 T7",IDC_REG0F,8,119,173,8
+    LTEXT           "(10) 00000000 00000000 S0",IDC_REG10,8,126,173,8
+    LTEXT           "(11) 00000000 00000000 S1",IDC_REG11,8,133,173,8
+    LTEXT           "(12) 00000000 00000000 S2",IDC_REG12,8,140,173,8
+    LTEXT           "(13) 00000000 00000000 S3",IDC_REG13,8,147,173,8
+    LTEXT           "(14) 00000000 00000000 S4",IDC_REG14,8,154,173,8
+    LTEXT           "(15) 00000000 00000000 S5",IDC_REG15,8,161,173,8
+    LTEXT           "(16) 00000000 00000000 S6",IDC_REG16,8,168,173,8
+    LTEXT           "(17) 00000000 00000000 S7",IDC_REG17,8,175,173,8
+    LTEXT           "(18) 00000000 00000000 T8",IDC_REG18,8,182,173,8
+    LTEXT           "(19) 00000000 00000000 T9",IDC_REG19,8,189,173,8
+    LTEXT           "(1A) 00000000 00000000 K0",IDC_REG1A,8,196,173,8
+    LTEXT           "(1B) 00000000 00000000 K1",IDC_REG1B,8,203,173,8
+    LTEXT           "(1C) 00000000 00000000 GP",IDC_REG1C,8,210,173,8
+    LTEXT           "(1D) 00000000 00000000 SP",IDC_REG1D,8,217,173,8
+    LTEXT           "(1E) 00000000 00000000 S8",IDC_REG1E,8,224,173,8
+    LTEXT           "(1F) 00000000 00000000 RA",IDC_REG1F,8,231,173,8
+    LTEXT           "(PC) 00000000 00000000 PC",IDC_REG20,8,238,173,8
+    LTEXT           "     00000000 00000000 MUL/DIV T LO",IDC_REG21,8,245,
+                    173,8
+    LTEXT           "     00000000 00000000 MUL/DIV T HI",IDC_REG22,8,252,
+                    173,8
+    CONTROL         "Tab1",IDC_REGTAB,"SysTabControl32",TCS_HOTTRACK,1,0,182,
+                    261
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_PLUGINS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 250
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 197
+    END
+
+    IDD_REGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 178
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 255
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_READY               "Ready"
+    IDS_COLOR_INVALID       "Color depth invalid, quitting..."
+    IDS_CAPTURED            "Captured: ec%04i.bmp"
+    IDS_UK_ERROR            "Unknown Error"
+    IDS_DYN_MEM_FAIL        "Couldn't allocate 4MB for dynarec. This will run interpretive only."
+    IDS_BIG_DYN_SIZE        "Massive size opcode, OP%X FUNC%X, RS%X"
+    IDS_VIOLATION_ACCESS    "Access Violation at %08X"
+    IDS_NO_ADAPTOID         "No adaptoids found"
+    IDS_ADAPTOIDS_FOUND     "%i adaptoid(s) found"
+    IDS_CPU_KILL            "Forced shutdown of CPU Thread"
+    IDS_AUDIO_KILL          "Forced shutdown of Audio Thread"
+    IDS_THREAD_DIE          "Normal Thread Termination!"
+    IDS_EMU_STOPPED         "Emulation Stopped..."
+    IDS_CPU_UNPAUSED        "CPU Is now unpaused!"
+    IDS_EMU_STARTED         "Emulation Started..."
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CPU_PAUSED          "CPU Is now paused!"
+    IDS_EMU_PAUSED          "Emulation Paused..."
+    IDS_INVALID_ROM         "Invalid ROM, try another."
+    IDS_LOADED_NS           "Loaded: %i%% [NS]"
+    IDS_LOADED_WS           "Loaded: %i%% [WS]"
+    IDS_LOADED_DS           "Loaded: %i%% [DS]"
+    IDS_OPEN_FAILED         "open of %s failed"
+    IDS_MEM_ALLOC           "Allocating memory."
+    IDS_MEM_ALLOC_ERROR     "Error allocating memory"
+    IDS_LOADING             "Loading..."
+    IDS_LOADED_100          "Loaded: 100%"
+    IDS_EMU_BEGIN           "Emulation has begun for [%C]%s..."
+    IDS_NAN_FOUND           "NaN found!"
+    IDS_TLBWR_CALLED        "tlb write random called"
+    IDS_COUNT               "COUNT"
+    IDS_CRC_FAILED          "CRC Failed. Oops?"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_DELAY_DEAD          "Delayed interrupt requested, but none of the serviceable ones."
+    IDS_COP2_CALLED         "COP2 Called"
+    IDS_NI_VERBOSE          "NI called. op%02X func%02X rs%02X"
+    IDS_NI_CALLED           "NI Called"
+    IDS_BREAK_VERBOSE       "BREAK opcode at %X, A2:%X, VO:%X"
+    IDS_BREAK_CALLED        "Break Called"
+    IDS_MEM_LOAD            "%08X used as memory base.\r\n"
+    IDS_MEM_LOAD_FAIL       "Page could not be allocated. Sorry, but don't try to run anything. It won't work\r\n"
+    IDS_DISCLAIMER          "This program does not have any warranty, expressed or implied, and the authors cannot be held liable for any damage to your hardware, software, or life. The authors distribute this program under the terms that the user will be held liable for all uses and abuses of the emulator. This software is also supplied under the condition any reverse engineering, decompiling, disassembling, and all like abuses to this executable will not take place. Do you agree to these terms?"
+    IDS_SETTING_OLD         "Before using the emulator, please double check your configuration settings.\n\r\n\r  Do you wish to use the defaults settings (Strongly Recommended)?"", ""Registry Settings are old/been modified"
+    IDS_CONSOLE_READY       "Ready to go\r\n"
+    IDS_DX_DEAD             "DirectX Failed to initialize!!"
+    IDS_LOAD_CANCEL         "Canceled rom load... resuming (mebbe)\r\n"
+    IDS_NEED_IMPLEMENT_ROMINFO "Need to implement rominfo\r\n"
+    IDS_NEED_IMPLEMENT_SCREENSHOT "Need to implement screenshot\r\n"
+    IDS_RECENT_FILE         "Recent File"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_TITLE_SUFFIX        " for Win9x/NT2"
+    IDS_OPEN_TITLE          "Open Nintendo 64 File..."
+    IDS_PIF_UK              "Unhandled command: %02X"
+    IDS_RSP_UK              "RSP/??? signaled to start. DataType is %d"
+    IDS_DP_RUN              "DP signaled to start,%08X"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// French (France) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
+#ifdef _WIN32
+LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // French (France) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Neutral (Sys. Default) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUSD)
+#ifdef _WIN32
+LANGUAGE LANG_NEUTRAL, SUBLANG_SYS_DEFAULT
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DLGINFO DIALOG DISCARDABLE  0, 0, 209, 140
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Rom Info"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDCANCEL,80,120,50,14
+    RTEXT           "External Rom Name:",IDC_STATIC,5,10,70,10
+    RTEXT           "Internal Rom Name:",IDC_STATIC,5,25,70,10
+    RTEXT           "Boot Code Entry:",IDC_STATIC,5,40,70,10
+    RTEXT           "Internal CRC1:",IDC_STATIC,5,55,70,10
+    RTEXT           "Internal CRC2:",IDC_STATIC,5,70,70,10
+    RTEXT           "External CRC1:",IDC_STATIC,5,85,70,10
+    RTEXT           "External CRC2:",IDC_STATIC,5,100,70,10
+    LTEXT           "Filename Goes here",ID__RI_FNAME,80,10,120,10
+    LTEXT           "Filename Goes here",ID__RI_INAME,80,25,120,10
+    LTEXT           "Filename Goes here",ID__RI_BCODE,80,40,120,10
+    LTEXT           "Filename Goes here",ID__RI_IC1,80,55,120,10
+    LTEXT           "Filename Goes here",ID__RI_IC2,80,70,120,10
+    LTEXT           "Filename Goes here",ID__RI_EC1,80,85,120,10
+    LTEXT           "Filename Goes here",ID__RI_EC2,80,100,120,10
+END
+
+IDD_DEBUGME DIALOG DISCARDABLE  0, 0, 443, 324
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Apollo Debugger"
+FONT 8, "Courier New"
+BEGIN
+    LISTBOX         IDC_DEBUG_DISASM,10,0,107,314,LBS_SORT | LBS_USETABSTOPS | 
+                    WS_TABSTOP
+    CONTROL         "Tab2",IDC_DEBUG_CPUSEL,"SysTabControl32",TCS_HOTTRACK | 
+                    TCS_BUTTONS | TCS_FIXEDWIDTH | WS_TABSTOP,10,311,106,13
+    CONTROL         "List1",IDC_DEBUG_REGS,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_NOSORTHEADER | WS_BORDER | 
+                    WS_TABSTOP,236,0,205,291
+    CONTROL         "Tab1",IDC_DEBUG_REGSEL,"SysTabControl32",TCS_HOTTRACK | 
+                    TCS_BUTTONS | TCS_MULTILINE | TCS_FIXEDWIDTH | 
+                    WS_TABSTOP,236,296,205,28
+    PUSHBUTTON      "Close",IDOK,177,119,50,12,WS_GROUP
+    PUSHBUTTON      "Step",IDC_DEBUG_STEP,126,119,50,12
+    PUSHBUTTON      "RSP Lists",IDC_DEBUG_RSPLISTS,177,131,50,12
+    PUSHBUTTON      "Go",IDC_DEBUG_GO,126,131,50,12
+    PUSHBUTTON      "Watch",IDC_DEBUG_WATCH,177,143,50,12
+    PUSHBUTTON      "Break",IDC_DEBUG_BREAK,126,143,50,12
+    PUSHBUTTON      "Memory",IDC_DEBUG_MEMORY,177,155,50,12
+    PUSHBUTTON      "Skip",IDC_DEBUG_SKIP,126,155,50,12
+    PUSHBUTTON      "Status",IDC_DEBUG_STATUS,177,167,50,12
+    PUSHBUTTON      "Logging",IDC_DEBUG_LOGGING,126,167,50,12
+    PUSHBUTTON      "",IDC_STATIC,177,179,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,126,179,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,177,191,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,126,191,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,177,203,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,126,203,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,177,215,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,126,215,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,177,227,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,126,227,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,177,239,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,126,239,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,177,251,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,126,251,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,177,263,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "",IDC_STATIC,126,263,50,12,NOT WS_VISIBLE
+    PUSHBUTTON      "Set Memory",IDC_DEBUG_SETMEM,177,275,50,12
+    PUSHBUTTON      "Copy Memory",IDC_DEBUG_COPYMEM,126,275,50,12
+    PUSHBUTTON      "Set PC",IDC_DEBUG_SETPC,177,287,50,12
+    PUSHBUTTON      "Copy PC",IDC_DEBUG_COPYPC,126,287,50,12
+    PUSHBUTTON      "Set Register",IDC_DEBUG_PASTEREG,177,299,50,12
+    PUSHBUTTON      "CopyRegister",IDC_DEBUG_COPYREG,126,299,50,12
+    EDITTEXT        IDC_DEBUG_COPYBOX,127,312,100,12,ES_AUTOHSCROLL | 
+                    WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML1,0,1,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML2,0,9,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML3,0,17,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML4,0,25,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML5,0,34,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML6,0,42,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML7,0,50,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML8,0,58,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML9,0,66,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML10,0,74,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML11,0,82,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML12,0,90,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML13,0,98,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML14,0,106,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML15,0,114,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML16,0,122,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML17,0,130,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML18,0,138,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML19,0,146,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML20,0,154,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML21,0,162,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML22,0,170,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML23,0,178,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML24,0,186,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML25,0,194,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML26,0,202,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEML27,0,210,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR1,117,0,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR2,117,8,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR3,117,16,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR4,117,24,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR5,117,33,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR6,117,41,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR7,117,49,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR8,117,57,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR9,117,65,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR10,117,73,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR11,117,81,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR12,117,89,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR13,117,97,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR14,117,105,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR15,117,113,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR16,117,121,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR17,117,129,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR18,117,137,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR19,117,145,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR20,117,153,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR21,117,161,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR22,117,169,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR23,117,177,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR24,117,185,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR25,117,193,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR26,117,201,9,8,NOT WS_GROUP
+    LTEXT           "",IDC_DEBUG_ITEMR27,117,209,9,8,NOT WS_GROUP
+    LISTBOX         IDC_STATIC,126,3,101,91,LBS_SORT | LBS_NOINTEGRALHEIGHT | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Remove Break",IDC_STATIC,177,95,50,12
+    PUSHBUTTON      "Add Break",IDC_STATIC,126,95,50,12
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_DEBUGME, DIALOG
+    BEGIN
+        RIGHTMARGIN, 442
+        BOTTOMMARGIN, 312
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_APOLLO              ICON    DISCARDABLE     "apollo.ico"
+#endif    // Neutral (Sys. Default) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

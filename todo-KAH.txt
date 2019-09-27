@@ -1,0 +1,50 @@
+<TODO>
+Further optimize the video drawing routines.(mmx section)
+
+
+
+
+</TODO>
+
+Need to get the debugger finished
+Need to enable a forced language
+
+List of things for version c release:
+RSP/RDP dummy enabled
+RSP/AI dummy enabled
+DLL support
+Adaptoid support
+Exceptions redone
+
+MarioKart sample: splitting the screen into 4 different viewports and sending to different
+   targets.
+
+Dynarec:
+
+block - (n) A variable size section of compiled code that is limited only by code that is
+  executed. Stopped by JR,JALR, or until the size limit has been reached. CRC'd to verify
+  block is valid at each execution. Currently only 255 blocks can exist at once.
+
+element - (n) A single instruction compiled into code.
+
+s_branch - (n) A variable during compile time to determine when it is time to stop. By
+  default, 32 branches are allowed. This should be enough for
+
+invalidate - (v) a known invalidation caused by DMA, TLB, or new ROM in which time is saved
+  and memory freed by invalidating the range just copied.
+
+compileBlock - (v) an action to create a block and insert it into the smallest available
+  contiguous memory of the scratchpad.
+
+dynarec Exception - (v) an act of jumping out of code, and entering the exception handler
+  to handle any number of possibilities. One possibility is a exception, the intel pc is saved,
+  and returned so a new block doesn't have to be compiled. This would need to CRC the block
+  it resides in, so the block # would be necessary.
+
+segment - (n) a section of elements that are not jumped into the middle of and can be optimized
+  by out of order execution and weaving the instructions together. Any jump into the middle of
+  a segment will cause an entirely new segment to be generated.
+
+
+Problems:
+
