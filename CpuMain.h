@@ -23,24 +23,18 @@ class r4300iTLB {
 			VirtualFree(this->TLBTable, 0, MEM_RELEASE);
 			VirtualFree(this->TLBList, 0, MEM_RELEASE);
 		}
-		void ResetTLB(void) {
-			memset(this->TLBTable, 0xFF, 0x400000); // 4MB Memory LUT
-			memset(this->TLBList , 0x00, sizeof(s_tlb) * listSize); // 4MB Memory LUT
-			for (DWORD i = 0x0; i < 0x800; i++) {
-				this->TLBTable[0x80000+i] = ((0x80000+i) << 12);
-				this->TLBTable[0xA0000+i] = ((0xA0000+i) << 12);
-				//this->TLBTable[0x80000+i] = valloc + (i << 12);
-				//this->TLBTable[0xA0000+i] = valloc + (i << 12);
-			}
-		}
+		void ResetTLB(void);
 		void ResizeTLBList (void);
 		void ClearEntry (int index);
 		void Probe ();
 		void IndexEntry (int index);
 		void RandomEntry (int index);
+		void mapmem (u32 tlbaddy, u32 mapaddy, u32 size);
 		u32 operator[] (int index) {
 			return TLBTable[index];
 		}
 };
 
 extern r4300iTLB TLBLUT; 
+extern int InterruptTime;
+void QuickTLBExcept ();

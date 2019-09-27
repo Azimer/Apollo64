@@ -69,16 +69,16 @@ u32 HandleWin32Exception(LPEXCEPTION_POINTERS info) {
 			if (((info[0].ExceptionRecord[0].ExceptionInformation[1])-valloc) < 0x1FD00000)
 			Debug (0, "UnAuthorized ROM Access: %08X using opcode: %X", pc, sop.op);
 			if (sop.op == 0x2b) { // SW
-				u32 addr = (CpuRegs[sop.rs] + (s32)(s16)opcode);
+				u32 addr = (u32)(CpuRegs[sop.rs] + (s32)(s16)opcode);
 				nextLW = CpuRegs[sop.rt];
-				dprintf ("Writing %08X from location ", nextLW);
+				dprintf ("EXCEPTION - Writing %08X from location ", nextLW);
 				Debug (0, "%08X", addr);
 				ChangeProtectionLevel = PAGE_NOACCESS;
 				return EXCEPTION_EXECUTE_HANDLER;
 			}
 			if (sop.op == 0x23) { // LW
-				u32 addr = (CpuRegs[sop.rs] + (s32)(s16)opcode);
-				dprintf ("Reading %08X from location ", nextLW);
+				u32 addr = (u32)(CpuRegs[sop.rs] + (s32)(s16)opcode);
+				dprintf ("EXCEPTION - Reading %08X from location ", nextLW);
 				Debug (0, "%08X", addr);
 				CpuRegs[sop.rt] = nextLW;
 				ChangeProtectionLevel = PAGE_READONLY;
@@ -88,7 +88,7 @@ u32 HandleWin32Exception(LPEXCEPTION_POINTERS info) {
 			pc-=4;
 			
 
-			Debug (0, "Write to ROM seemed to cause a problem");
+			Debug (0, "Write to ROM seemed to cause a problem: %08X", pc);
 
 			ChangeProtectionLevel = PAGE_READONLY;
 			return EXCEPTION_EXECUTE_HANDLER;
@@ -213,8 +213,9 @@ void StartCPU (void) {
 	cpuIsDone = false;
 	cpuIsPaused = false;
 	dlists=0; alists = 0;
-	ResumeThread (handleCpuThread);
 	ResumeThread (handleAudioThread);
+	Sleep(25);
+	ResumeThread (handleCpuThread);
 }
 //extern u32 eepDetectToggle;
 void StopCPU (void) {
@@ -300,20 +301,20 @@ UINT CpuThreadProc(LPVOID) {
 	ChangeProtectionLevel = PAGE_READONLY;
 	DWORD old = ChangeProtectionLevel;
 	bool cpuSelect = RegSettings.dynamicEnabled;
-
-    VirtualProtect((void *)(valloc+0x10000000), romsize, ChangeProtectionLevel, &old);
+//  Remember to reenable this or else some roms are going to hate me...
+//    VirtualProtect((void *)(valloc+0x10000000), romsize, ChangeProtectionLevel, &old);
 
 	while (cpuIsDone == false) {
 		cpuIsReset = false;
 		ResetCPU ();
 		while (cpuIsReset == false) {
-			//__try {
+			__try {
 				if (ChangeProtectionLevel != old) {
 					VirtualProtect((void *)(valloc+0x10000000), romsize, ChangeProtectionLevel, &old); // Ok.. next read is bad
 					old = ChangeProtectionLevel;
 				}
 				Emulate ();
-			/*}__except ( HandleWin32Exception(GetExceptionInformation()) ) {
+			}__except ( HandleWin32Exception(GetExceptionInformation()) ) {
 					short* hh = (short*)intelException[0].ExceptionRecord[0].ExceptionAddress;
 					if (hh[0]==0x008B) {
 						intelException[0].ContextRecord[0].Eax = 0;
@@ -701,7 +702,7 @@ bool OnOpen(char* filename) {
 
 // end of implementation functions
 unsigned long crcTable[256];
-static bool tableIsGenerated = false;
+bool tableIsGenerated = false;
 
 void crcgen() {
 	unsigned long	crc, poly;

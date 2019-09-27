@@ -1,9 +1,9 @@
 #define V_VSYNC
-#define SITIME 1000
+#define SITIME 500
 #define PITIME 250
-//#define AITIME 510
+#define AITIME 510
 //#define AITIME 350000
-#define AITIME 750000
+//#define AITIME 750000
 //#define AITIME 930000
 
 
@@ -196,7 +196,8 @@ void KillMemory(void) {
 }
 
  //Used for VI Hack..
-
+u32 ailens = 0;
+float AiFreq;
 extern u32 VsyncTime;
 extern int InterruptTime;
 #define MMU_COUNT MmuRegs[9]
@@ -213,14 +214,17 @@ u32 ReadData (u32 addr) {
 			return retVal;
 		break;
 		case 0x00500000: {
-			//Debug (0, "Read AI_DRAM_ADDR_REG = %08X", *(u32 *)(AI+0x00));
+			Debug (0, "Read AI_DRAM_ADDR_REG = %08X", *(u32 *)(AI+0x00));
 		} break;
 		case 0x00500004: {
+			u32 GetLength ();
+			return GetLength ();
 			instructions = (VsyncTime - InterruptTime);
 			MMU_COUNT = instructions;
 			u32 retVal = snddll.AiReadLength ();
 			//((u32*)returnMemPointer(addr))[0] = retVal;
-			//Debug (0, "Read AI_LEN_REG = %08X", *(u32 *)(AI+0x04));
+			*(u32 *)(AI+0x04) = retVal;
+//			Debug (0, "Read AI_LEN_REG = %08X - %i", *(u32 *)(AI+0x04), retVal);
 			return retVal;
 			//return ((u32*)returnMemPointer(addr))[0] / 2;
 		}
@@ -228,9 +232,13 @@ u32 ReadData (u32 addr) {
 		case 0x00500008: {
 			Debug (0, "Read AI_CONTROL_REG = %08X", *(u32 *)(AI+0x08));
 		} break;
+*/
 		case 0x0050000C: {
-			Debug (0, "Read AI_STATUS_REG = %08X", *(u32 *)(AI+0x0C));
+			u32 GetStatus ();
+			return GetStatus ();
+//			Debug (0, "Read AI_STATUS_REG = %08X", *(u32 *)(AI+0x0C));
 		} break;
+/*
 		case 0x00500010: {
 			Debug (0, "Read AI_DACRATE_REG = %08X", *(u32 *)(AI+0x10));
 		} break;
@@ -368,18 +376,28 @@ u32 CookData(u32 addr, u32 data) {
 		if (data & 0x400000) retVal |= 0x2000;
 		if (data & 0x800000) retVal &= ~0x4000;//clear and set sig7
 		if (data & 0x1000000) retVal |= 0x4000;
+		//if (retVal >= 0x20)
+		//	Debug (0, "SP Bits: %X", retVal);
 		if (!(retVal & 1))
 			SignalRSP (&retVal);
 			//ScheduleEvent (RSP_EVENT, RSPTIME, &((u32*)SP)[4]);
+		if (retVal & 0x80) {
+			InterruptNeeded |= SP_INTERRUPT;
+			retVal &= ~0x80;
+		}
 		return retVal; break;
 	case 0x0004001C://SP
 //		SPsema=0;
+		Debug (0, "SP Semaphore");
 		return 0; break;
+	case 0x00080004:
+		Debug (0, "SP BIST");
+	break;
 	case 0x00100000:
 		//Debug (0, "Written to the RDP_START_REG");
 	break;
 	case 0x00100004://DPC END
-		Debug (0, "Written to the DPC_END_REG");
+		//Debug (0, "Written to the DPC_END_REG");
 		SignalRDP();
 	break;
 	case 0x00100008:
@@ -454,7 +472,7 @@ u32 CookData(u32 addr, u32 data) {
 		gfxdll.ViStatusChanged ();
 		return data; break;
 	case 0x00400004:// Origin Changed
-		//Debug (0, "Origin Changed: %08X", data);
+		//Debug (0, "%08X: Origin Changed: %08X", pc, data);
 	break;
 	case 0x00400008:// VI_WIDTH
 		//Debug (0, "Width Changed: %08X", data);
@@ -509,16 +527,24 @@ u32 CookData(u32 addr, u32 data) {
 		//Debug (0, "Write AI_DRAM_ADDR_REG = %08X", data);
 	} break;
 	case 0x00500004: { // R/W
-		//Debug (0, "Write AI_LEN_REG = %08X - %i", data, data);
+		void SetLength (u32 data);
+		((u32*)AI)[1] = data;
+		instructions = (VsyncTime - InterruptTime);
+		MMU_COUNT = instructions;
+//		snddll.AiLenChanged();
+		SetLength (data);
+		ailens++;
+		return data;
+//		Debug (0, "Write AI_LEN_REG = %08X - %i", data, data);
 		/*if ((*(u32 *)(AI+0xC) & 1) == 0) // AI DMA Disabled
 			return data;*/
 		if (data) {//If there is no data, don't start playing...(duh)
 			((u32*)AI)[1] = data;
 			instructions = (VsyncTime - InterruptTime);
 			MMU_COUNT = instructions;
-			ScheduleEvent (AI_DMA_EVENT, AITIME, 0, NULL);
+			//ScheduleEvent (AI_DMA_EVENT, AITIME, 0, NULL);
 			snddll.AiLenChanged();
-			((DWORD *)AI)[3] = 0xC0000000;
+			//((DWORD *)AI)[3] = 0xC0000000;
 			//dprintf ("$");
 			void GetNextInterrupt ();
 			GetNextInterrupt ();
@@ -538,12 +564,16 @@ u32 CookData(u32 addr, u32 data) {
 	case 0x00500010: { // W
 		extern u32 SystemType;
 		*(u32 *)(AI+0x10) = data;
+		instructions = (VsyncTime - InterruptTime);
+		MMU_COUNT = instructions;
 		if (snddll.AiDacrateChanged)
 			snddll.AiDacrateChanged(!SystemType);
 		if (SystemType == 1)
-			Debug (0, "Write AI_DACRATE_REG = %i - %f", data, 48681812.0/(float)(data+1));
+			Debug (0, "Write AI_DACRATE_REG = %i - %f", data, (AiFreq = 48681812.0/(float)(data+1)));
 		else
-			Debug (0, "Write AI_DACRATE_REG = %i - %f", data, 49656530.0/(float)(data+1));
+			Debug (0, "Write AI_DACRATE_REG = %i - %f", data, (AiFreq = 49656530.0/(float)(data+1)));
+		void SetFrequency (u32 data);
+		SetFrequency (AiFreq);
 		return data;
 	} break;
 	case 0x00500014: { // W
@@ -573,16 +603,16 @@ u32 CookData(u32 addr, u32 data) {
 		u32 src = ((DWORD*)PI)[0];
 		u32 dst = ((DWORD*)PI)[1];
 			
-		//Debug (0, "%08X PI Transfer: (RDRAM)%08X -> (RROM)%08X with size %X", pc-4, ((DWORD*)PI)[0], ((DWORD*)PI)[1], data+1);
+		Debug (0, "%08X PI Transfer: (RDRAM)%08X -> (RROM)%08X with size %X", pc-4, ((DWORD*)PI)[0], ((DWORD*)PI)[1], data+1);
 		if ((dst >= 0x06000000) && (dst < 0x10000000)) {
 			u32 address = ((DWORD*)PI)[1] & 0x1FFFF;
 			if (FRinUse) {
-				//Debug (0, "%08X PI Transfer: (RDRAM)%08X -> (FlashRAM Buffer)%08X with size %X", pc-4, ((DWORD*)PI)[0], ((DWORD*)PI)[1], data+1);
-				for (int x = 0; x <= data; x++) {
+				Debug (0, "%08X PI Transfer: (RDRAM)%08X -> (FlashRAM Buffer)%08X with size %X", pc-4, ((DWORD*)PI)[0], ((DWORD*)PI)[1], data+1);
+				for (u32 x = 0; x <= data; x++) {
 					FlashRAM_Buffer[x^3] = *(u8 *)returnMemPointer((src+x)^3);
 				}
 			} else {
-				for (int x = 0; x <= data; x++) {
+				for (u32 x = 0; x <= data; x++) {
 					FlashRAM[(address+x)^3] = *(u8 *)returnMemPointer((src+x)^3);
 				}
 				if (SRinUse == false) {
@@ -603,13 +633,13 @@ u32 CookData(u32 addr, u32 data) {
 		static u32 DMAINFO[3];
 		//src &= 0x1fffffff;
 //		CF04DC30
-		//Debug (0, "%08X PI Transfer: (ROM)%08X -> (RDRAM)%08X with size %i", pc-4, ((DWORD*)PI)[1], ((DWORD*)PI)[0], data+1);
+		//Debug (2, "%08X PI Transfer: (ROM)%08X -> (RDRAM)%08X with size %i\n", pc-4, ((DWORD*)PI)[1], ((DWORD*)PI)[0], data+1);
 		if ((src+data) < (0x10000000+fsize)) {
 			if ((src >= 0x08000000) && (src < 0x10000000)) {
 				u32 address = ((DWORD*)PI)[1] & 0x1FFFF;
 				if (FlashRAM_Mode == FLASH_STATUS) {
-					//Debug (0, "%08X PI Transfer: (FlashRAM Status)%08X -> (RDRAM)%08X with size %X", pc-4, ((DWORD*)PI)[1], ((DWORD*)PI)[0], data+1);
-					for (int x = 0; x <= data; x++) {
+					Debug (0, "%08X PI Transfer: (FlashRAM Status)%08X -> (RDRAM)%08X with size %X", pc-4, ((DWORD*)PI)[1], ((DWORD*)PI)[0], data+1);
+					for (u32 x = 0; x <= data; x++) {
 						*(u8 *)returnMemPointer((dst+x)^3) = *(u8 *)returnMemPointer((src+x)^3);
 						if (x < 8)
 							dprintf ("%02X", *(u8 *)returnMemPointer((src+x)^3));
@@ -618,8 +648,8 @@ u32 CookData(u32 addr, u32 data) {
 					if (SRinUse != true) {
 						address *= 2;
 					}
-					//Debug (0, "%08X PI Transfer: (FlashRAM)%08X -> (RDRAM)%08X with size %X", pc-4, address, ((DWORD*)PI)[0], data+1);
-					for (int x = 0; x <= data; x++) {
+					Debug (0, "%08X PI Transfer: (FlashRAM)%08X -> (RDRAM)%08X with size %X", pc-4, address, ((DWORD*)PI)[0], data+1);
+					for (u32 x = 0; x <= data; x++) {
 						*(u8 *)returnMemPointer((dst+x)^3) = FlashRAM[(address+x)^3];
 						//if (x < 8)
 						//	dprintf ("%02X", *(u8 *)returnMemPointer((src+x)^3));
@@ -637,12 +667,14 @@ u32 CookData(u32 addr, u32 data) {
 				SET_INTR(PI_INTERRUPT);
 				return data;
 			} else {
+				static int dmahehe = 0;
 				DMAINFO[0] = dst;
 				DMAINFO[1] = src;
 				DMAINFO[2] = data;
 				((u32 *)PI)[0x4] |= 0x3;
 				ScheduleEvent (PI_DMA_EVENT, PITIME, sizeof(u32)*3, DMAINFO);
-				//Debug (2, "PI Scheduled");
+			//	Debug (0, "PI DMA %i", dmahehe);
+				dmahehe++;
 			}
 			//InterruptNeeded |= PI_INTERRUPT;
 			//SET_INTR(PI_INTERRUPT);

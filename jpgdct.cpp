@@ -300,8 +300,8 @@ void zlist_uncompress()
        !zdata.m_q2  ||
        !zdata.m_q3)
     {
-        Debug (0, "zelda: JPEG-DCT (buffer %08X, quant %08X) INVALID, ignored.\n",
-            zdata.m_pic,zdata.m_q1,zdata.m_q2,zdata.m_q3);
+        /*Debug (0, "zelda: JPEG-DCT (buffer %08X, quant %08X) INVALID, ignored.\n",
+            zdata.m_pic,zdata.m_q1,zdata.m_q2,zdata.m_q3);*/
         return;
     }
 

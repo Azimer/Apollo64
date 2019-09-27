@@ -1,0 +1,30 @@
+08/09/03
+--------
+-I need to ask Dominator how to do some good HLE function detection...  There are too
+ many OS variants.  Perhaps a .cod file is needed or something.  I dunno :-(
+
+-I should get started on the Dynarec...
+
+
+
+
+
+Goals for v0.10
+---------------
+-Mario64 capable dynarec
+-Fix Savestates
+-Fix Registry Settings
+-Rombrowser plugin support
+-Cheats Menu
+-Speed Limiter
+
+Goals for future
+----------------
+-Clean up code
+-Register Caching Dynarec
+-Fix Twisted Edge lack of Audio
+
+Possible goals
+--------------
+-OS HLE
+-Graphics DLL

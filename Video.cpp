@@ -44,13 +44,21 @@ int last_time = 0, frames = 0;
 
 void ComputeFPS(void) {
 	static int last_time = 0, frames = 0;
-	char buffer[128];
+	char buffer[1024];
 	if (isFullScreen == false) {
 		int current_time = timeGetTime();
 		frames++;
 		if (current_time - last_time >= 1000) {
 			sprintf(buffer,"%i FPS", frames);
 			SendMessage(hwndStatus, SB_SETTEXT, 1, (LPARAM)(LPSTR) buffer);
+			extern u32 dlists, alists;
+			extern u32 ailens;
+			extern float AiFreq;
+			extern u32 AiLen;
+			//sprintf (buffer, "DL/s: %i  AL/s: %i  AI/s: %i (%i)[%i] - %f", dlists, alists, ailens, alists*2, frames, AiFreq/((float)AiLen/4.0));
+			sprintf (buffer, "pc: 0x%08X  Dlists: %i  Alists: %i  AiLens: %i", pc, dlists, alists, ailens);
+			SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) buffer);
+			//dlists = alists = ailens = 0;
 			last_time = timeGetTime();
 			frames = 0;
 		}

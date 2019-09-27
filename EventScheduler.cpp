@@ -13,7 +13,7 @@
 #define CHECK_MI_EVENT		0x6
 #define AID_DMA_EVENT		0x7
 
-#define MAXEVENTS 10
+#define MAXEVENTS 30 
 
 extern u32 PiInterrupt, CountInterrupt, VsyncInterrupt;
 extern u32 VsyncTime;
@@ -117,8 +117,13 @@ void ScheduleEvent (u32 EventType, u32 Time, u32 size, void *extra) {
 	while ((EList[FreeEvent].EventType != 0) && (FreeEvent < MAXEVENTS))
 		FreeEvent++;
 
-	if (FreeEvent == MAXEVENTS)
-		__asm int 3; // Assert that this will never be true...
+	if (FreeEvent == MAXEVENTS) {
+		FreeEvent = 0;
+		while (EList[FreeEvent].EventType != 5)
+			FreeEvent++;
+		Debug (0, "FreeEvent is maxed... hacking... ");
+		//__asm int 3; // Assert that this will never be true...
+	}
 
 	//if (Time & 0x3)
 	//	__asm int 3;
@@ -148,9 +153,10 @@ extern u8 *AI;
 u32 aibuff = 0;
 u32 ExecuteEvent () {
 	u32 retVal = 0;
+	u32 Event = EList[NextEvent].EventType;
 	if (NextEvent == -1)
 		return 0;
-	switch (EList[NextEvent].EventType) {
+	switch (Event) {
 		case RSP_EVENT:
 			SignalRSP((u32 *)EList[NextEvent].extra);
 		break;
@@ -161,7 +167,7 @@ u32 ExecuteEvent () {
 				u32 *DMAINFO = (u32 *)EList[NextEvent].extra;
 				if (ChangeProtectionLevel == PAGE_NOACCESS)
 					VirtualProtect((void *)(valloc+0x10000000), romsize, PAGE_READONLY, &ChangeProtectionLevel); // Ok.. next read is bad				
-				for (int x = 0; x <= DMAINFO[2]; x++) {
+				for (u32 x = 0; x <= DMAINFO[2]; x++) {
 					*(u8 *)returnMemPointer((DMAINFO[0]+x)^3) = *(u8 *)returnMemPointer((DMAINFO[1]+x)^3);
 				}
 			}
@@ -177,36 +183,27 @@ u32 ExecuteEvent () {
 			retVal = 0;
 		break;
 
-		case AID_DMA_EVENT: // Clear Full
-			((DWORD *)AI)[3] &= ~0x80000000;
-			aibuff--;
-			Debug (0, "AI I/O Free Event!!!");
+		case AID_DMA_EVENT:
+			void AiInterrupt ();
+			EList[NextEvent].EventType = 0; // Clears this event
+			instructions = (VsyncTime - InterruptTime);
+			MmuRegs[0x9] = instructions;
+//			snddll.AiCallBack();
+			AiInterrupt ();
+
+			retVal = AI_INTERRUPT;
+			ListCnt--;
+			ScheduleNextEvent ();
+			return retVal;
 		break;
 
 		case AI_DMA_EVENT: {
 			extern u8 *AI;
 
-			((DWORD *)AI)[3] &= ~0xC0000000;
-			//dprintf ("-");
-			/*
-			aibuff++;
-			Debug (0, "AI DMA Event %i ", aibuff);
-			if (aibuff > 2)
-				__asm int 3;
-			if (aibuff == 2) {
-				u32 u =	(u32)(48681812.0/(float)(((DWORD *)AI)[4]));
-				u32 NextE = NextEvent;
-				((DWORD *)AI)[3] |= 0x80000000;
-				Debug (0, "Scheduled AI Done Task %i", u);
-				ScheduleEvent (AID_DMA_EVENT, u, 0, NULL);
-				NextEvent = NextE; // Erase it
-			}
-			*/
-			retVal = AI_INTERRUPT;
-			//if (snddll.AiLenChanged)
-			//	snddll.AiLenChanged();
+			void AiCallBack ();
+			AiCallBack ();
 
-			//((u32*)AI)[1] = 0;
+			retVal = 0;
 		}
 		break;
 		default:

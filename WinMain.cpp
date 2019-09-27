@@ -2,12 +2,14 @@ const char * BETAINFO =
 "Thank you for helping beta test Apollo\r\
 This beta belongs to: nobody                                          \r\
 Unauthorized distribution of the beta is grounds for immediate removal\r\
-New to R1:\r\
+New to v0.10:\r\
   -Added 4MB Expansion as an option\r\
   -Fixed FPU (Fixes Turok)\r\
   -Added Faster TLB Accessing\r\
   -Banjo Tooie/Jet Force Gemini Copyprotection support\r\
-  -Partially working new internal audio code\r\
+What's New to R2:\r\
+  -Fully working internal audio code\r\
+  -Hydro Thunder Audio Fix\r\
 What's Next in R2:\r\
   -Fixed SaveStates\r\
   -Fixed Registry Settings\r\
@@ -33,6 +35,7 @@ What's Next in R2:\r\
 #include <stdio.h>
 #include "afxres.h" // Needed for resource.h for some reason
 #include "resource.h"
+#include "Dynarec/RecompilerDebug.h"
 #include "WinMain.h"
 #include "console.h"
 #include "EmuMain.h"
@@ -421,10 +424,14 @@ void ToggleCPU (void);
 					DialogBoxIndirect(GhInst,(DLGTEMPLATE*)LoadResource(NULL,FindResourceEx(NULL,RT_DIALOG,MAKEINTRESOURCE(IDD_DLGABOUT),LangUsed)),GhWnd,(DLGPROC)GenericProc);
 					//DialogBox(GhInst,MAKEINTRESOURCE(IDD_DLGABOUT),GhWnd,(DLGPROC)GenericProc);
 					break;
-				case ID_CPU_R4KDEBUGGER:
+				case ID_DEBUG_OPENDEBUGGER:
 					//void InvokeOpTester ();
 					//InitializeDebugger();
 					//InvokeOpTester ();
+					if (cpuIsPaused == false) {
+						ToggleCPU ();
+					}
+					OpenDebuggerWindow (GhInst, hWnd);
 					break;
 				case ID_CPU_COMPRESS: {
 					if (GET_MENU(ID_CPU_COMPRESS) == MF_CHECKED) {

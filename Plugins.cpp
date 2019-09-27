@@ -101,7 +101,6 @@ void AddPluginToDialog (char *filename, HWND hWnd) {
 	HMODULE hInstLib = NULL;
 	PLUGIN_INFO Plugin;
 	char buffer[260];
-	DWORD index;
 
 	strcpy (buffer, dllpath);
 	strcat (buffer, filename);
@@ -168,7 +167,6 @@ void AddPluginToDialog (char *filename, HWND hWnd) {
 
 void QueryPlugins (HWND hWnd) {
 	char fuckyou[256];
-	PLUGIN_INFO CurrentPlugin;
 	
 	WIN32_FIND_DATA finder;
 

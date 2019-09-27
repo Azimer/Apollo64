@@ -132,6 +132,9 @@ typedef struct {
 	DWORD * AI_BITRATE_REG;
 
 	void (*CheckInterrupts)( void );
+
+	DWORD * MMU_COUNT_REG;
+	void (__cdecl *SetInterruptTimer)( DWORD );
 } AUDIO_INFO;
 
 void LoadPlugins ();

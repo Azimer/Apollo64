@@ -331,6 +331,18 @@
 							<Tool
 								Name="VCCLCompilerTool"/>
 						</FileConfiguration>
+						<FileConfiguration
+							Name="NoOpt|Win32"
+							ExcludedFromBuild="TRUE">
+							<Tool
+								Name="VCCLCompilerTool"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Debug|Win32"
+							ExcludedFromBuild="TRUE">
+							<Tool
+								Name="VCCLCompilerTool"/>
+						</FileConfiguration>
 					</File>
 					<Filter
 						Name="interpretive"
@@ -352,7 +364,26 @@
 						Name="dynarec"
 						Filter="">
 						<File
+							RelativePath="DynaCodes.h">
+						</File>
+						<File
+							RelativePath="DynaOps.cpp">
+							<FileConfiguration
+								Name="Debug|Win32">
+								<Tool
+									Name="VCCLCompilerTool"/>
+							</FileConfiguration>
+						</File>
+						<File
 							RelativePath="R4K Dynarec.cpp">
+							<FileConfiguration
+								Name="Debug|Win32">
+								<Tool
+									Name="VCCLCompilerTool"/>
+							</FileConfiguration>
+						</File>
+						<File
+							RelativePath="..\..\dynalog.txt">
 						</File>
 					</Filter>
 				</Filter>

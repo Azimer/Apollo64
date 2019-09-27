@@ -141,8 +141,8 @@ u32 dlists=0, alists = 0;
 //Purpose: called when bit 0 is set in the SP_STATUS. dispatch to correct HLE emulation function.
 void SignalRSP(DWORD *data) {
 	static int hack=0;
-	char buff[256];
-	u32 crc, crc2;
+//	char buff[256];
+//	u32 crc, crc2;
 	switch (((u32*)idmem)[0xFC0/4]) {
 		case 0x1: // Graphics Task
 			//dprintf ("+");
@@ -151,7 +151,7 @@ void SignalRSP(DWORD *data) {
                 0x04000fd4: ucode length
                 0x04000fd8: ucode data
                 0x04000fdc: ucode data length*/
-			if (dlists == 0) {
+/*			if (dlists == 0) {
 				crc = GenerateCRC (rdram + *(DWORD *)(idmem + 0xfd8), 0x120);
 				switch (crc) {
 					case 0x8FC89DAA:
@@ -196,40 +196,40 @@ void SignalRSP(DWORD *data) {
 					default:
 						if (*(DWORD *)(0x2B0 + rdram + *(DWORD *)(idmem + 0xfd8)) == 0x52535020) {
 							Debug (0, "GBI Autodetect to be Microcode 2 - %08X", crc);
-							/*
-							A339760E - Robotron
-							A339760E - Banjo Kazooie
-							59F11356 - 1080
-							A339760E - WaveRace SE
-							27D68C16 - Mario Kart 64
-							A339760E - WCW/NWO World Tour
-							C90F421D - SF Rush
-							A339760E - Rampage
-							7BABBDB2 - NHL Breakaway
-							59F11356 - Virtual Pool
-							*/
+							
+							//A339760E - Robotron
+							//A339760E - Banjo Kazooie
+							//59F11356 - 1080
+							//A339760E - WaveRace SE
+							//27D68C16 - Mario Kart 64
+							//A339760E - WCW/NWO World Tour
+							//C90F421D - SF Rush
+							//A339760E - Rampage
+							//7BABBDB2 - NHL Breakaway
+							//59F11356 - Virtual Pool
+							
 						} else {
 							Debug (0, "GBI Autodetect failed - %08X", crc);
-							/*FILE *dfile;
-							int i;
-							u8 *dm = rdram + *(DWORD *)(idmem + 0xfd8);
-							u32 len = *(DWORD *)(idmem + 0xfdc);
-							char str[0x10];
-							dfile = fopen ("c:\\dump.txt", "wt");
-							for (i=0; i < len; i++) {
-								if ((i & 0xF) == 0x0)
-									fprintf (dfile, "%04X: ", i);
-								fprintf (dfile, "%02X ", dm[i^3]);
-								str[i&0xf] = dm[i^3];
-								if ((i & 0xF) == 0xF)
-									fprintf (dfile, "\n", str);
-							}
-							fclose (dfile);
-							Debug (0, "Unknown GBI: %08X - %08X", crc, *(DWORD *)(rdram + *(DWORD *)(idmem + 0xfd8)));*/
+							//FILE *dfile;
+							//int i;
+							//u8 *dm = rdram + *(DWORD *)(idmem + 0xfd8);
+							//u32 len = *(DWORD *)(idmem + 0xfdc);
+							//char str[0x10];
+							//dfile = fopen ("c:\\dump.txt", "wt");
+							//for (i=0; i < len; i++) {
+							//	if ((i & 0xF) == 0x0)
+							//		fprintf (dfile, "%04X: ", i);
+							//	fprintf (dfile, "%02X ", dm[i^3]);
+							//	str[i&0xf] = dm[i^3];
+							//	if ((i & 0xF) == 0xF)
+							//		fprintf (dfile, "\n", str);
+							//}
+							//fclose (dfile);
+							Debug (0, "Unknown GBI: %08X - %08X", crc, *(DWORD *)(rdram + *(DWORD *)(idmem + 0xfd8)));
 						}
 				}
 			}
-
+*/
 			dlists++;
 			//sprintf (buff, "Dlists: %i  Alists: %i", dlists, alists);
 			//SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) buff);
@@ -279,7 +279,7 @@ void SignalRSP(DWORD *data) {
 			zlist_uncompress();
 			//rsp_run ();
 			SignalDeadRSP(data);
-			//Debug(0,"Texture Decoder");
+			Debug(0,"Texture Decoder");
 		break;
 		default:
 			Debug(0,"%08X: RSP/??? signaled to start. DataType is %d", pc, ((u32*)idmem)[0xFC0/4]);

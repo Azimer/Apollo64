@@ -67,7 +67,7 @@ int InterruptTime;
 u32 VsyncInterrupt = VsyncTime;
 u32 CountInterrupt=-1;
 u32 PiInterrupt=-1;
-s_tlb tlb[32];
+s_tlb tlb[0x40];
 extern int inDelay;
 
 #define CPU_ERROR(x,y) Debug(0,"%s %08X",x,y)
@@ -103,6 +103,8 @@ extern int inDelay;
 #define TLB_MOD			1
 #define TLB_LOAD		2
 #define TLB_STORE		3
+#define ADDR_LOAD		4
+#define ADDR_STORE		5
 //4 5 6 7 are not going to be handled
 #define SYSCALL			8
 #define BREAK			9
@@ -143,6 +145,7 @@ void opMFC0(void) { // Fixed sop.rt==1 to sop.rd==1
 	//if (sop.rd==1) { MmuRegs[sop.rd] = (instructions % (47-((MMU_WIRED) & 0x3F))) + 47;}
 	if (sop.rd==1) { MMU_RANDOM = instructions & 0x1F; if (MMU_RANDOM < MMU_WIRED) MMU_RANDOM = 0x1F; }
 	if (sop.rd==13 && MI[8]==0) { MMU_CAUSE &= 0xfffffbff;}//remove pin if there's no reason for it.
+	//if (sop.rd==14) Debug (0, "%08X: MFC0: EPC = %08X", pc, MMU_EPC);
 	//Debug (0, "COUNT");
 	CpuRegs[sop.rt] = (s32)MmuRegs[sop.rd];
 }
@@ -169,6 +172,7 @@ void opMTC0(void) {
 			MmuRegs[sop.rd] = (u32)CpuRegs[sop.rt];
 			SetFpuLocations (); // Setup the registers
 		} else {
+			//Debug (0, "Setting Status: %08X -> %08X", MmuRegs[sop.rd], (u32)CpuRegs[sop.rt]);
 			MmuRegs[sop.rd] = (u32)CpuRegs[sop.rt];
 		}
 
@@ -176,6 +180,7 @@ void opMTC0(void) {
 		//	Debug (0, "Left Kernel Mode - This shouldn't happen?");
 		return;
 	}
+	//if (sop.rd==14) Debug (0, "%08X: MTC0: EPC = %08X", pc, (u32)CpuRegs[sop.rt]);
 	if (sop.rd==11) {
 		CountInterrupt=CpuRegs[sop.rt]-1;
 		//if (CountInterrupt > instructions) {
@@ -203,9 +208,11 @@ void opMTC0(void) {
 }
 extern u8 *MI;
 void opERET(void){
-	//Debug (0, "ERET: PC = %08X  EPC = %08X", pc, MMU_EPC);
+//	Debug (0, "ERET: PC = %08X  EPC = %08X", pc, MMU_EPC);
 	if (MMU_SR & 0x4)	{ pc = MMU_ERROREPC;	MMU_SR &= ~0x4;}
 	else				{ pc = MMU_EPC;			MMU_SR &= ~0x2;}
+	if (pc == 0)
+		__asm int 3;
 	MMU_SR &= ~0x6;
 	MMU_SR |= 0x1; // STATUS_IE
 	LLBit = 0;
@@ -319,7 +326,6 @@ void GenerateException(DWORD addr, DWORD type) {
 			pc = 0x0; //80 vs 0, porp to 64bit vs 32bit
 		tlbinvalid = false;
 		//Debug (0, "TLB Miss occurred: %X", pc);
-		//pc = 0x0;
 	}
 
 	MMU_SR |= 2;
@@ -343,6 +349,12 @@ void BreakException () {
 	Debug (0, "Break Exception");
 	pc -= 4;
 	GenerateException (pc, BREAK);
+}
+
+void AddressErrorException (bool store) {
+	pc -= 4;
+	if (store)
+		GenerateException (pc, ADDR_STORE);
 }
 
 bool CopUnuseableException(u32 addr, u32 copx) {
@@ -460,10 +472,12 @@ void CheckInterrupts() {
 		if (InterruptNeeded & VI_INTERRUPT) {
 			//if (RegSettings.enableConsoleWindow) {
 				extern u32 dlists, alists;
-				char buff[255];
-				sprintf (buff, "pc: 0x%08X  Dlists: %i  Alists: %i", pc, dlists, alists);
+				extern u32 ailens;
+//				char buff[255];
+				//sprintf (buff, "DL/s: %i  AL/s: %i  AI/s: %i", dlists, alists, ailens);
+				//sprintf (buff, "pc: 0x%08X  Dlists: %i  Alists: %i", pc, dlists, alists);
 
-				SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) buff);
+				//SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) buff);
 			//}
 			ComputeFPS();
 			gfxdll.UpdateScreen();

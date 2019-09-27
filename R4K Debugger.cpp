@@ -35,6 +35,7 @@
 #include <math.h>
 #include "WinMain.h"
 #include "EmuMain.h"
+#include "CpuMain.h"
 #include "resource.h"
 
 
@@ -47,6 +48,8 @@
 void Fetch( char* buffer, unsigned int opcode, unsigned int location, char fmt );
 HWND DebuggerHwnd = NULL;
 u32 DebuggerLocation = 0x80000040;
+
+s_sop dop;
 
 /*
 void (*r4300i[0x40])() = {
@@ -95,19 +98,19 @@ char *mmuregs[0x20] = {
 };
 
 void COP0Lookup (char *out) {
-	switch (sop.rs) {
-	case 0x00: sprintf (out, "MFC0	%s, %s", r4kreg[sop.rt], mmuregs[sop.rd]); break;
-	case 0x04: sprintf (out, "MTC0	%s, %s", r4kreg[sop.rt], mmuregs[sop.rd]); break;
-	case 0x16: // Special
-		switch (sop.func) {
+	switch (dop.rs) {
+	case 0x00: sprintf (out, "MFC0	%s, %s", r4kreg[dop.rt], mmuregs[dop.rd]); break;
+	case 0x04: sprintf (out, "MTC0	%s, %s", r4kreg[dop.rt], mmuregs[dop.rd]); break;
+	case 0x10: // Special
+		switch (dop.func) {
 			case 0x01: sprintf (out, "TLBR"); break;
 			case 0x02: sprintf (out, "TLBWI"); break;
 			case 0x06: sprintf (out, "TLBWR"); break;
 			case 0x08: sprintf (out, "TLBP"); break;
 			case 0x18: sprintf (out, "ERET"); break;
-			default: sprintf (out, "UKNWN	%08X", ((u32 *)&sop)[0]);
-		}
-	default: sprintf (out, "CUKNWN	%08X", ((u32 *)&sop)[0]);
+			default: sprintf (out, "UKNWN	%08X", ((u32 *)&dop)[0]);
+		} break;
+	default: sprintf (out, "CUKNWN %08X", ((u32 *)&dop)[0]);
 	}
 }
 
@@ -115,24 +118,24 @@ void COP1Lookup () {
 }
 
 void REGIMMLookup (char *out, u32 addy) {
-	switch (sop.rt) {
-		case 0x00: sprintf (out, "BLTZ	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x01: sprintf (out, "BGEZ	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x02: sprintf (out, "BLTZL	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x03: sprintf (out, "BGEZL	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x08: sprintf (out, "TGEI	%s, 0x%08X", r4kreg[sop.rs], (((u16 *)&sop)[0]<<2)); break;
-		case 0x09: sprintf (out, "TGEIU	%s, 0x%08X", r4kreg[sop.rs], (((u16 *)&sop)[0]<<2)); break;
-		case 0x0A: sprintf (out, "TLTI	%s, 0x%08X", r4kreg[sop.rs], (((u16 *)&sop)[0]<<2)); break;
-		case 0x0B: sprintf (out, "TLTIU	%s, 0x%08X", r4kreg[sop.rs], (((u16 *)&sop)[0]<<2)); break;
-		case 0x0C: sprintf (out, "TEQI	%s, 0x%08X", r4kreg[sop.rs], (((u16 *)&sop)[0]<<2)); break;
-		case 0x0E: sprintf (out, "TNEI	%s, 0x%08X", r4kreg[sop.rs], (((u16 *)&sop)[0]<<2)); break;
-		case 0x10: sprintf (out, "BLTZAL	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x11: if (sop.rs) sprintf (out, "BGEZAL	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2));
-				   else sprintf (out, "BAL	0x%08X", addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x12: sprintf (out, "BLTZALL	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x13: sprintf (out, "BGEZALL	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
+	switch (dop.rt) {
+		case 0x00: sprintf (out, "BLTZ	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x01: sprintf (out, "BGEZ	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x02: sprintf (out, "BLTZL	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x03: sprintf (out, "BGEZL	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x08: sprintf (out, "TGEI	%s, 0x%08X", r4kreg[dop.rs], (((u16 *)&dop)[0]<<2)); break;
+		case 0x09: sprintf (out, "TGEIU	%s, 0x%08X", r4kreg[dop.rs], (((u16 *)&dop)[0]<<2)); break;
+		case 0x0A: sprintf (out, "TLTI	%s, 0x%08X", r4kreg[dop.rs], (((u16 *)&dop)[0]<<2)); break;
+		case 0x0B: sprintf (out, "TLTIU	%s, 0x%08X", r4kreg[dop.rs], (((u16 *)&dop)[0]<<2)); break;
+		case 0x0C: sprintf (out, "TEQI	%s, 0x%08X", r4kreg[dop.rs], (((u16 *)&dop)[0]<<2)); break;
+		case 0x0E: sprintf (out, "TNEI	%s, 0x%08X", r4kreg[dop.rs], (((u16 *)&dop)[0]<<2)); break;
+		case 0x10: sprintf (out, "BLTZAL	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x11: if (dop.rs) sprintf (out, "BGEZAL	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2));
+				   else sprintf (out, "BAL	0x%08X", addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x12: sprintf (out, "BLTZALL	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x13: sprintf (out, "BGEZALL	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
 		default:
-			sprintf (out, "*********REGIMM	%08X********", sop.rt); break;
+			sprintf (out, "***REGIMM %08X***", dop.rt); break;
 	}
 	
 }
@@ -149,40 +152,45 @@ void (*special[0x40])() = {
 };
 */
 void SPECIALLookup (char *out) {
-	switch (sop.func) {
-		case 0x00: if (((u32*)&sop)[0] == 0) sprintf (out, "NOP");
-				   else sprintf (out, "SLL	%s, %s, 0x%X", r4kreg[sop.rd], r4kreg[sop.rt], sop.sa); break;
-		case 0x01: sprintf (out, "Unknown	%08X", ((u32 *)&sop)[0]); break;
-		case 0x02: sprintf (out, "SRL	%s, %s, 0x%X", r4kreg[sop.rd], r4kreg[sop.rt], sop.sa); break;
-		case 0x03: sprintf (out, "SRA	%s, %s, 0x%X", r4kreg[sop.rd], r4kreg[sop.rt], sop.sa); break;
-		case 0x04: sprintf (out, "SLLV	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rt], r4kreg[sop.rs]); break;
-		case 0x06: sprintf (out, "SRLV	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rt], r4kreg[sop.rs]); break;
-		case 0x07: sprintf (out, "SRAV	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rt], r4kreg[sop.rs]); break;
-		case 0x08: sprintf (out, "JR	%s", r4kreg[sop.rs]); break;
-		case 0x09: if (sop.rd == 31) sprintf (out, "JALR	%s", r4kreg[sop.rs]);
-				   else sprintf (out, "JALR	%s, %s", r4kreg[sop.rd], r4kreg[sop.rs]); break;
+	switch (dop.func) {
+		case 0x00: if (((u32*)&dop)[0] == 0) sprintf (out, "NOP");
+				   else sprintf (out, "SLL	%s, %s, 0x%X", r4kreg[dop.rd], r4kreg[dop.rt], dop.sa); break;
+		case 0x01: sprintf (out, "Unknown	%08X", ((u32 *)&dop)[0]); break;
+		case 0x02: sprintf (out, "SRL	%s, %s, 0x%X", r4kreg[dop.rd], r4kreg[dop.rt], dop.sa); break;
+		case 0x03: sprintf (out, "SRA	%s, %s, 0x%X", r4kreg[dop.rd], r4kreg[dop.rt], dop.sa); break;
+		case 0x04: sprintf (out, "SLLV	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rt], r4kreg[dop.rs]); break;
+		case 0x06: sprintf (out, "SRLV	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rt], r4kreg[dop.rs]); break;
+		case 0x07: sprintf (out, "SRAV	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rt], r4kreg[dop.rs]); break;
+		case 0x08: sprintf (out, "JR	%s", r4kreg[dop.rs]); break;
+		case 0x09: if (dop.rd == 31) sprintf (out, "JALR	%s", r4kreg[dop.rs]);
+				   else sprintf (out, "JALR	%s, %s", r4kreg[dop.rd], r4kreg[dop.rs]); break;
 		case 0x0C: sprintf (out, "SYSCALL	????"); break;
 		case 0x0D: sprintf (out, "BREAK	????"); break;
 		case 0x0F: sprintf (out, "SYNC	????"); break;
-		case 0x10: sprintf (out, "MFHI	%s", r4kreg[sop.rd]); break;
-		case 0x11: sprintf (out, "MTHI	%s", r4kreg[sop.rd]); break;
-		case 0x12: sprintf (out, "MFLO	%s", r4kreg[sop.rd]); break;
-		case 0x13: sprintf (out, "MTLO	%s", r4kreg[sop.rd]); break;
-		case 0x18: sprintf (out, "MULT	%s, %s", r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x19: sprintf (out, "MULTU	%s, %s", r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x1A: sprintf (out, "DIV	%s, %s", r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x1B: sprintf (out, "DIVU	%s, %s", r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x1F: sprintf (out, "DDIVU %s, %s", r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x20: sprintf (out, "ADD	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x21: sprintf (out, "ADDU	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x22: sprintf (out, "SUB	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x23: sprintf (out, "SUBU	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x24: sprintf (out, "AND	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x25: sprintf (out, "OR	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x26: sprintf (out, "XOR	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x2A: sprintf (out, "SLT	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		case 0x2B: sprintf (out, "SLTU	%s, %s, %s", r4kreg[sop.rd], r4kreg[sop.rs], r4kreg[sop.rt]); break;
-		default: sprintf (out, "**********SPECIAL	%08X***********", sop.func);
+		case 0x10: sprintf (out, "MFHI	%s", r4kreg[dop.rd]); break;
+		case 0x11: sprintf (out, "MTHI	%s", r4kreg[dop.rd]); break;
+		case 0x12: sprintf (out, "MFLO	%s", r4kreg[dop.rd]); break;
+		case 0x13: sprintf (out, "MTLO	%s", r4kreg[dop.rd]); break;
+		case 0x18: sprintf (out, "MULT	%s, %s", r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x19: sprintf (out, "MULTU	%s, %s", r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x1A: sprintf (out, "DIV	%s, %s", r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x1B: sprintf (out, "DIVU	%s, %s", r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x1C: sprintf (out, "DMULT %s, %s", r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x1F: sprintf (out, "DDIVU %s, %s", r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x20: sprintf (out, "ADD	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x21: sprintf (out, "ADDU	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x22: sprintf (out, "SUB	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x23: sprintf (out, "SUBU	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x24: sprintf (out, "AND	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x25: sprintf (out, "OR	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x26: sprintf (out, "XOR	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x2A: sprintf (out, "SLT	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x2B: sprintf (out, "SLTU	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x2D: sprintf (out, "DADDU	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x38: sprintf (out, "DSLL	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x3C: sprintf (out, "DSLL32	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		case 0x3F: sprintf (out, "DSRA32	%s, %s, %s", r4kreg[dop.rd], r4kreg[dop.rs], r4kreg[dop.rt]); break;
+		default: sprintf (out, "***SPECIAL %08X***", dop.func);
 	}
 }
 /*
@@ -191,58 +199,74 @@ A40004E8  r4300 00000015
 A40009D0  r4300 00000024
 A400098C  r4300 00000028
 A40003F8  r4300 0000002F*/
+bool FindHLEFunc(u32 addy, char *func);
+
 void OpcodeLookup (DWORD addy, char *out) {
-	((u32*)&sop)[0] = vr32(addy);
-	switch (sop.op) {
+	char func[100];
+	if (TLBLUT[addy >> 12] == 0xFFFFFFFF) {
+		strcpy (out, "TLB Miss");
+		return;
+	}
+	if (TLBLUT[addy >> 12] == 0xFFFFFFFE) {
+		strcpy (out, "TLB Invalid");
+		return;
+	}
+	((u32*)&dop)[0] = vr32(addy);
+	switch (dop.op) {
 		case 0x00: SPECIALLookup (out); break;
 		case 0x01: REGIMMLookup (out, addy); break;
-		case 0x02: sprintf (out, "J	%08X", ((addy+4) & 0xf0000000) + (((((u32 *)&sop)[0] << 2) & 0x0fffffff))); break;
-		case 0x03: sprintf (out, "JAL	%08X", ((addy+4) & 0xf0000000) + (((((u32 *)&sop)[0] << 2) & 0x0fffffff))); break;
-		case 0x04: if (sop.rt) sprintf (out, "BEQ	%s, %s, 0x%08X", r4kreg[sop.rs], r4kreg[sop.rt], addy+4+(((s16 *)&sop)[0]<<2));
-				   else if (sop.rs) sprintf (out, "BEQZ	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); 
-				   else sprintf (out, "B	0x%08X", addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x05: if (sop.rt) sprintf (out, "BNE	%s, %s, 0x%08X", r4kreg[sop.rs], r4kreg[sop.rt], addy+4+(((s16 *)&sop)[0]<<2));
-				   else sprintf (out, "BNEZ	%s, %08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x06: sprintf (out, "BLEZ	%s, %s, 0x%08X", r4kreg[sop.rs], r4kreg[sop.rt], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x07: sprintf (out, "BGTZ	%s, %s, 0x%08X", r4kreg[sop.rs], r4kreg[sop.rt], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x08: sprintf (out, "ADDI	%s, %s, 0x%04X", r4kreg[sop.rt], r4kreg[sop.rs], ((u16 *)&sop)[0]); break;
-		case 0x09: sprintf (out, "ADDIU	%s, %s, 0x%04X", r4kreg[sop.rt], r4kreg[sop.rs], ((u16 *)&sop)[0]); break;
-		case 0x0A: sprintf (out, "SLTI	%s, %s, 0x%04X", r4kreg[sop.rt], r4kreg[sop.rs], ((u16 *)&sop)[0]); break; 
-		case 0x0B: sprintf (out, "SLTIU	%s, %s, 0x%04X", r4kreg[sop.rt], r4kreg[sop.rs], ((u16 *)&sop)[0]); break;
-		case 0x0C: sprintf (out, "ANDI	%s, %s, 0x%04X", r4kreg[sop.rt], r4kreg[sop.rs], ((u16 *)&sop)[0]); break;
-		case 0x0D: sprintf (out, "ORI	%s, %s, 0x%04X", r4kreg[sop.rt], r4kreg[sop.rs], ((u16 *)&sop)[0]); break;
-		case 0x0E: sprintf (out, "XORI	%s, %s, 0x%04X", r4kreg[sop.rt], r4kreg[sop.rs], ((u16 *)&sop)[0]); break;
-		case 0x0F: sprintf (out, "LUI	%s, 0x%04X", r4kreg[sop.rt], ((u16 *)&sop)[0]); break;
+		case 0x02: sprintf (out, "J	%08X", ((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff))); break;
+		case 0x03: if (FindHLEFunc(((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff)), func) == false)
+					   sprintf (out, "JAL	%08X", ((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff)));
+				   else
+					   sprintf (out, "JAL %s(%08X)", func, ((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff)));
+				   break;
+		case 0x04: if (dop.rt) sprintf (out, "BEQ	%s, %s, 0x%08X", r4kreg[dop.rs], r4kreg[dop.rt], addy+4+(((s16 *)&dop)[0]<<2));
+				   else if (dop.rs) sprintf (out, "BEQZ	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); 
+				   else sprintf (out, "B	0x%08X", addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x05: if (dop.rt) sprintf (out, "BNE	%s, %s, 0x%08X", r4kreg[dop.rs], r4kreg[dop.rt], addy+4+(((s16 *)&dop)[0]<<2));
+				   else sprintf (out, "BNEZ	%s, %08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x06: sprintf (out, "BLEZ	%s, %s, 0x%08X", r4kreg[dop.rs], r4kreg[dop.rt], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x07: sprintf (out, "BGTZ	%s, %s, 0x%08X", r4kreg[dop.rs], r4kreg[dop.rt], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x08: sprintf (out, "ADDI	%s, %s, 0x%04X", r4kreg[dop.rt], r4kreg[dop.rs], ((u16 *)&dop)[0]); break;
+		case 0x09: sprintf (out, "ADDIU	%s, %s, 0x%04X", r4kreg[dop.rt], r4kreg[dop.rs], ((u16 *)&dop)[0]); break;
+		case 0x0A: sprintf (out, "SLTI	%s, %s, 0x%04X", r4kreg[dop.rt], r4kreg[dop.rs], ((u16 *)&dop)[0]); break; 
+		case 0x0B: sprintf (out, "SLTIU	%s, %s, 0x%04X", r4kreg[dop.rt], r4kreg[dop.rs], ((u16 *)&dop)[0]); break;
+		case 0x0C: sprintf (out, "ANDI	%s, %s, 0x%04X", r4kreg[dop.rt], r4kreg[dop.rs], ((u16 *)&dop)[0]); break;
+		case 0x0D: sprintf (out, "ORI	%s, %s, 0x%04X", r4kreg[dop.rt], r4kreg[dop.rs], ((u16 *)&dop)[0]); break;
+		case 0x0E: sprintf (out, "XORI	%s, %s, 0x%04X", r4kreg[dop.rt], r4kreg[dop.rs], ((u16 *)&dop)[0]); break;
+		case 0x0F: sprintf (out, "LUI	%s, 0x%04X", r4kreg[dop.rt], ((u16 *)&dop)[0]); break;
 		case 0x10: COP0Lookup (out); break;
-		case 0x11: sprintf (out, "COP1	%08X", sop.rs); break;
-		case 0x14: if (sop.rt) sprintf (out, "BEQL	%s, %s, 0x%08X", r4kreg[sop.rs], r4kreg[sop.rt], addy+4+(((s16 *)&sop)[0]<<2));
-				   else sprintf (out, "BEQZL	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x15: if (sop.rt) sprintf (out, "BNEL	%s, %s, 0x%08X", r4kreg[sop.rs], r4kreg[sop.rt], addy+4+(((s16 *)&sop)[0]<<2));
-				   else sprintf (out, "BNEZL	%s, 0x%08X", r4kreg[sop.rs], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x16: sprintf (out, "BLEZL	%s, %s, 0x%08X", r4kreg[sop.rs], r4kreg[sop.rt], addy+4+(((s16 *)&sop)[0]<<2)); break;
-		case 0x20: sprintf (out, "LB	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
-		case 0x21: sprintf (out, "LH	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
+		case 0x11: sprintf (out, "COP1	%08X", dop.rs); break;
+		case 0x14: if (dop.rt) sprintf (out, "BEQL	%s, %s, 0x%08X", r4kreg[dop.rs], r4kreg[dop.rt], addy+4+(((s16 *)&dop)[0]<<2));
+				   else sprintf (out, "BEQZL	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x15: if (dop.rt) sprintf (out, "BNEL	%s, %s, 0x%08X", r4kreg[dop.rs], r4kreg[dop.rt], addy+4+(((s16 *)&dop)[0]<<2));
+				   else sprintf (out, "BNEZL	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x16: sprintf (out, "BLEZL	%s, %s, 0x%08X", r4kreg[dop.rs], r4kreg[dop.rt], addy+4+(((s16 *)&dop)[0]<<2)); break;
+		case 0x20: sprintf (out, "LB	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
+		case 0x21: sprintf (out, "LH	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
 		// 22 - LWL
-		case 0x23: sprintf (out, "LW	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
-		case 0x24: sprintf (out, "LBU	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
-		case 0x25: sprintf (out, "LHU	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
+		case 0x23: sprintf (out, "LW	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
+		case 0x24: sprintf (out, "LBU	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
+		case 0x25: sprintf (out, "LHU	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
 		// 26 - LWR
-		case 0x27: sprintf (out, "LWU	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
-		case 0x28: sprintf (out, "SB	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
-		case 0x29: sprintf (out, "SH	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
+		case 0x27: sprintf (out, "LWU	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
+		case 0x28: sprintf (out, "SB	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
+		case 0x29: sprintf (out, "SH	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
 		// 2A - SWL
-		case 0x2B: sprintf (out, "SW	%s, 0x%04X(%s)", r4kreg[sop.rt], ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
+		case 0x2B: sprintf (out, "SW	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
 		// 2C - SDL
 		// 2D - SDR
 		// 2E - SWR
-		case 0x2F: sprintf (out, "CACHE %X, 0x%04X(%s)", sop.rt, ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
+		case 0x2F: sprintf (out, "CACHE %X, 0x%04X(%s)", dop.rt, ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
 		// 30 - LL
-		case 0x31: sprintf (out, "LWC1  COP1[%i], 0x%04X(%s)", sop.rt, ((u16 *)&sop)[0], r4kreg[sop.rs]); break;
+		case 0x31: sprintf (out, "LWC1  COP1[%i], 0x%04X(%s)", dop.rt, ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
 		// 32 - LWC2
 		// 34 - LLD
 		// 35 - LDC1
 		// 36 - LDC2
 		// 37 - LD
+		case 0x37: sprintf (out, "LD	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
 		// 38 - SC
 		// 39 - SWC1
 		// 3A - SWC2
@@ -250,8 +274,9 @@ void OpcodeLookup (DWORD addy, char *out) {
 		// 3D - SDC1
 		// 3E - SDC2
 		// 3F - SD
+		case 0x3F: sprintf (out, "SD	%s, 0x%04X(%s)", r4kreg[dop.rt], ((u16 *)&dop)[0], r4kreg[dop.rs]); break;
 		default:
-			sprintf (out, "********r4300 %08X*********", sop.op);
+			sprintf (out, "***r4300 %08X***", dop.op);
 	}
 }
 
@@ -273,7 +298,7 @@ void DisassembleRange (u32 Start, u32 End) {
 	}
 	fclose (disasm);
 }
-
+/*
 
 bool InitializeDebugger(void) {
 	if (DebuggerHwnd!=0) return false;
@@ -302,14 +327,14 @@ bool InitializeDebugger(void) {
 
 char *lpszREGTYPES[13] = {"R4K", "MMU", "FPU", "RSP", "MI", "PI", "SP", 
 						  "DP", "AI", "RAM", "RI", "VI", "SI"};
-
+*/
 char *R4KRegNames[0x20] = {
   "R0", "AT", "V0", "V1", "A0", "A1", "A2", "A3", "T0", "T1", "T2",
   "T3", "T4", "T5", "T6", "T7", "S0", "S1", "S2", "S3", "S4", "S5",
   "S6", "S7", "T8", "T9", "K0", "K1", "GP", "SP", "S8", "RA"
 };
 
-
+/*
 static int iCurrentCPU = 0;
 static int iCurrentREG = 0;
 
@@ -529,3 +554,4 @@ BOOL CALLBACK Debugger( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam ) 
 	}
 	return FALSE;
 }
+*/

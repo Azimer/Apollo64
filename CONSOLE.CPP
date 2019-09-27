@@ -146,8 +146,8 @@ void CreateConsoleWindow (bool shouldHide) {
 }
 
 void Debug (int logtype, char *string, ...) {
-	static FILE *logfile1 = fopen ("d:\\logfile1.txt", "wt");
-//	static FILE *logfile2 = fopen ("d:\\logfile2.txt", "wt");
+	static FILE *logfile1 = fopen ("c:\\logfile1.txt", "wt");
+	static FILE *logfile2 = fopen ("c:\\logfile2.txt", "wt");
 	/*if (cpuIsReset == true)
 		return;*/
 	char buffer[300];
@@ -166,8 +166,8 @@ void Debug (int logtype, char *string, ...) {
 			return;
 		break;
 		case 0x4: // MessageBox and LogFile #2
-//			fprintf (logfile2, buffer);
-//			fflush (logfile2);
+			fprintf (logfile2, buffer);
+			fflush (logfile2);
 		break;
 		case 0x6: // MessageBox and LogFile #3
 		default: // Just the console window

@@ -22,6 +22,7 @@ typedef struct {
 	void (__cdecl* AiLenChanged	  )( void );
 	DWORD (__cdecl* AiReadLength  )( void );
 	void (__cdecl* AiUpdate		  )( BOOL Wait );
+	void (__cdecl* AiCallBack  )( void );
 
 // Support Functions...
 	inline BOOL Load (char* libname) {return LoadAudioPlugin(libname);} // Loads a plugin with the specified name

@@ -41,6 +41,85 @@
 #include "resource.h"
 #include "audiodll.h"
 
+void ScheduleEvent (u32, u32, u32, void *);
+
+#define AI_DMA_EVENT		0x5
+#define AID_DMA_EVENT		0x7
+extern u8* rdram;
+extern u8* idmem;
+extern u8* MI;
+extern u8* AI;
+
+
+// ****************** Testing Audio Stuff *****************
+static u32 Frequency = 0;
+static u32 Length = 0;
+static u32 Status = 0;
+static double CountsPerByte;
+static u32 SecondBuff = 0;
+static u32 CurrentCount;
+static u32 CurrentLength;
+static u32 IntScheduled = 0;
+extern u32 VsyncTiming; // Need this so I can time things to VSync...
+
+
+void AiInterrupt () {
+	if (SecondBuff != 0) {
+		IntScheduled = (u32)((double)SecondBuff * CountsPerByte);
+		ScheduleEvent (AID_DMA_EVENT, IntScheduled, 0, NULL);
+	} else {
+		Status &= ~0x40000000;
+	}
+	CurrentCount = MmuRegs[9];
+	CurrentLength = SecondBuff;
+	SecondBuff = 0;
+	Status &= 0x7FFFFFFF;
+}
+
+void AiCallBack () {
+	if (SecondBuff == 0)
+		Status &= 0x7FFFFFFF;
+}
+
+u32 GetLength () {
+	double AiCounts = CountsPerByte * CurrentLength;
+	AiCounts = AiCounts - (double)(MmuRegs[9] - CurrentCount);
+	if (AiCounts < 0)
+		return 0;
+	return (u32)(AiCounts/CountsPerByte);
+	//return 0;
+}
+
+u32 GetStatus () {
+	return Status;
+	//return 0;
+}
+
+void SetLength (u32 data) {
+	u32 CountCycles;
+	// Set Status to FULL for a few COUNT cycles
+	if (CurrentLength == 0) {
+		CurrentLength = data;
+		CurrentCount = MmuRegs[9];
+		IntScheduled = (u32)((double)data * CountsPerByte);
+		ScheduleEvent (AID_DMA_EVENT, IntScheduled, 0, NULL);
+	} else {
+		SecondBuff = data;
+		Status |= 0x80000000;
+//		ScheduleEvent (AI_DMA_EVENT, 20, 0, NULL);
+	}
+	Status |= 0x40000000;
+	((DWORD *)AI)[1] = data;
+	snddll.AiLenChanged ();
+}
+
+void SetFrequency (u32 data) {
+	u32 CountsPerSecond;
+	Frequency = data;
+	Frequency = (Frequency * 4); // This makes it Bytes Per Second...
+	CountsPerSecond = 789000.0 * (float)60.0; // This will only work with NTSC...	
+	CountsPerByte = (double)CountsPerSecond / (double)Frequency;
+}
 
 // ****************** Interfacing for the Controller plugin ****************************
 
@@ -123,17 +202,14 @@ BOOL LoadAudioPlugin (char *libname) {
 
 AUDIO_INFO SndInfo; // make it stay just in case the evil plugin doesn't store a local copy
 
-extern u8* rdram;
-extern u8* idmem;
-extern u8* MI;
-extern u8* AI;
 
 
 u32 DummyReg;
 
+static u32 FakeReg;
+
 void InitSNDPlugin () {
 
-	u32 FakeReg;
 
 	ZeroMemory (&SndInfo, sizeof(AUDIO_INFO));
 
@@ -150,10 +226,10 @@ void InitSNDPlugin () {
 	SndInfo.AI_DRAM_ADDR_REG	= (u32 *)(AI+0x00);
 	SndInfo.AI_LEN_REG			= (u32 *)(AI+0x04);
 	SndInfo.AI_CONTROL_REG		= (u32 *)(AI+0x08);
-	SndInfo.AI_STATUS_REG		= (u32 *)(AI+0x0C);
+	SndInfo.AI_STATUS_REG		= (u32 *)&FakeReg;//(AI+0x0C);
 	SndInfo.AI_DACRATE_REG		= (u32 *)(AI+0x10);
 	SndInfo.AI_BITRATE_REG		= (u32 *)(AI+0x14);
-	SndInfo.MI_INTR_REG			= (u32 *)(MI+0x08);
+	SndInfo.MI_INTR_REG			= (u32 *)&FakeReg;//(MI+0x08);
 
 	SndInfo.CheckInterrupts		= SignalAiDone;
 
@@ -163,9 +239,6 @@ void InitSNDPlugin () {
 	}
 }
 
-void ScheduleEvent (u32, u32, u32, void *);
-
-#define AI_DMA_EVENT		0x5
 
 void SignalAiDone(void) {
 	//*SndInfo.AI_STATUS_REG |= 0x80000001;
@@ -173,7 +246,7 @@ void SignalAiDone(void) {
 	//if ((((u32*)MI)[3] & (((u32*)MI)[2])) & AI_INTERRUPT)
 	//((u32*)MI)[3] |= AI_INTERRUPT;
 	//((u32*)MI)[2] |= AI_INTERRUPT;
-	InterruptNeeded |= AI_INTERRUPT;
+	//InterruptNeeded |= AI_INTERRUPT;
 	//Debug (0, "Audio Interrupt");
 }
 

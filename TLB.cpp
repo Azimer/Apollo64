@@ -43,6 +43,60 @@ void GenerateException(DWORD addr, DWORD type);
 
 r4300iTLB TLBLUT;
 
+extern int inDelay;
+void GenerateTLBException (DWORD addr, DWORD type) {
+		MMU_RANDOM = instructions & 0x1F;
+		if (MMU_RANDOM < MMU_WIRED)
+			MMU_RANDOM = 0x1F;
+
+		//Debug (0, "MMU_RANDOM = %i", MMU_RANDOM);
+
+		MMU_CONTEXT &= 0xFF800000;
+		MMU_CONTEXT |= (addr >> 13) << 4;
+		MMU_ENTRYHI &= 0x00001FFF;
+		MMU_ENTRYHI = (addr & 0xFFFFE000);
+		MMU_BADVADDR = addr;
+
+		if (pc != addr)
+			pc -= 4;
+
+		Debug (0, "TLB Exception... pc = %08X - addr = %08X", pc, addr);
+
+		if (inDelay == 1)
+			Debug (0, "TLB Exception in Delay Slot at PC = %08X", pc);
+		if (TLBLUT[addr >> 12] == 0xFFFFFFFE)
+			tlbinvalid = true;
+
+		if (type)
+			GenerateException(pc, TLB_STORE);
+		else
+			GenerateException(pc, TLB_LOAD);
+
+		//MMU_INDEX = 0;
+		//Emulate ();
+		//RaiseException (0xc0001337, 0,0, NULL); // TLB Exception
+}
+
+// Golden Eye Range... 7f000000,10034b30,1000000 (borrowed from UltraHLE 1.0)
+void r4300iTLB::mapmem (u32 tlbaddy, u32 mapaddy, u32 size) {
+	u32 thesize = size / 0x1000;
+	u32 addy = tlbaddy >> 12;
+	Debug (0, "Mapping Address %08X to %08X of size %08X", tlbaddy, mapaddy, size);
+	for (u32 i = 0x0; i < thesize; i++) {
+		this->TLBTable[addy+i] = (mapaddy+(i << 12));
+	}
+}
+
+void r4300iTLB::ResetTLB(void) {
+			memset(this->TLBTable, 0xFF, 0x400000); // 4MB Memory LUT
+			memset(this->TLBList , 0x00, sizeof(s_tlb) * listSize); // 4MB Memory LUT
+			for (DWORD i = 0x0; i < 0x800; i++) {
+				this->TLBTable[0x80000+i] = ((0x80000+i) << 12);
+				this->TLBTable[0xA0000+i] = ((0xA0000+i) << 12);
+				//this->TLBTable[0x80000+i] = valloc + (i << 12);
+				//this->TLBTable[0xA0000+i] = valloc + (i << 12);
+			}
+		}
 
 void r4300iTLB:: ResizeTLBList (void) {
 			s_tlb *oldTLBList = this->TLBList;
@@ -71,6 +125,8 @@ void r4300iTLB::ClearEntry (int index) {
         // This should place the TLB entry in the Main TLB List...
 		// Should I be picky about its location in the Main TLB List?
 void r4300iTLB::Probe () {
+	// TODO: Before I can do this, I will need to keep a list of things like the mask...
+	//if (TLBTable[MMU_ENTRYHI >> 12] < 0xFFFFFFF0)
 		/*	
 			for (int i=0; i < 32; i++) {
 				u32 mask = ~(TLBList[i].hh | 0x1fff);//& 0xffffe000;
@@ -122,6 +178,7 @@ void r4300iTLB::IndexEntry (int index) {
 							this->TLBTable[addr >> 12] = 0xFFFFFFFE; // This should signify invalid entry when exception happens
 						}
 					}
+					//Debug (2, "	Mapped %08X to %08X", addr, this->TLBTable[addr >> 12]);
 					addr += 0x1000; // 4K is minimum TLB Entry size
 				} while (addr < (TLBLength+TLBStartLoc));
 			}
@@ -137,7 +194,6 @@ void r4300iTLB::RandomEntry (int index) {
 	IndexEntry (index);
 	//__asm int 3;
 }
-// (addr & 0xfff);
 
 void DisassembleRange (u32 Start, u32 End);
 #ifdef USE_NEW_TLB
@@ -152,11 +208,11 @@ u32 VirtualToPhysical(u32 addr, int type) {
 	}*/
 
 	if (TLBLUT[addr >> 12] < 0xFFFFFFFE) {
-		cpuIsDone = true;
-		cpuIsReset = true;
 		return oldAddr = TLBLUT[addr>>12] + (addr & 0xfff);
 	} else {
-		oldAddr = TLBLUT[addr>>12];
+//		Debug (0, "TLB Issue at PC %08X accessing addr %08X  %08X", pc, addr);
+//		RaiseException (0xc0001337, 0,0, NULL); // TLB Exception
+//		oldAddr = TLBLUT[addr>>12];
 		// Invalid or Miss Exception!
 //		Debug (1, "Unhandled Miss/Invalid Exception! (Unimplemented in New TLB)");
 //		cpuIsDone = true;
@@ -212,6 +268,7 @@ u32 VirtualToPhysical(u32 addr, int type) {
 */	
 	
 	if (match == false) { // TLB Hacks galore!!!
+		Debug (0, "TLB Miss: %08X", pc);
 		
 /*		if (tlbinvalid == true) {
 			if (oldAddr != 0xFFFFFFFE)
@@ -250,9 +307,15 @@ u32 VirtualToPhysical(u32 addr, int type) {
 		MMU_ENTRYHI = (addr & 0xFFFFE000);
 		MMU_BADVADDR = addr;
 
-		if (pc != addr)
+		if (pc != addr) {
+			//if ((pc != 0x150A916C) && (pc != 0x150A914C))
+			//	Debug (2, "%08X: Non Instruction Miss\n", pc);
 			pc -= 4;
+		} 
 
+//		Debug (2, "TLB Miss or Invalid at %08X\n", addr);
+
+		//Debug (2, "%08X: ", addr);
 		//if (inDelay == 1)
 		//	Debug (0, "TLB Exception in Delay Slot!");
 		if (type)
@@ -267,6 +330,28 @@ u32 VirtualToPhysical(u32 addr, int type) {
 	}
 	return addr;
 	//return oldAddr;
+}
+
+void QuickTLBExcept () {
+	if (TLBLUT[pc >> 12] == 0xFFFFFFFE) {
+		tlbinvalid = true;
+		MMU_RANDOM = instructions & 0x1F;
+		if (MMU_RANDOM < MMU_WIRED)
+			MMU_RANDOM = 0x1F;
+	}
+
+	MMU_CONTEXT &= 0xFF800000;
+	MMU_CONTEXT |= (pc >> 13) << 4;
+	MMU_ENTRYHI &= 0x00001FFF;
+	MMU_ENTRYHI = (pc & 0xFFFFE000);
+	MMU_BADVADDR = pc;
+
+	//Debug (2, "%08X: ", pc);
+
+	if (inDelay == 1)
+		Debug (0, "TLB Exception in Delay Slot at PC = %08X", pc);
+
+	GenerateException(pc, TLB_LOAD);
 }
 
 void opTLBP(void){
@@ -295,8 +380,8 @@ void opTLBWI(void){
 	u32 j = MMU_INDEX & 0x1f;
 
 	TLBLUT.ClearEntry (j);
-/*
-	//if (MMU_ENTRYHI != 0x80000000) {
+
+/*	if (MMU_ENTRYHI != 0x80000000) {
 		Debug (0, "TLB Write Index @ %08X", pc-4);
 		Debug (0, "- INDEX    = %08X", MMU_INDEX);
 		Debug (0, "- PAGEMASK = %08X", MMU_PAGEMASK);
@@ -304,20 +389,20 @@ void opTLBWI(void){
 		Debug (0, "- ENTRYLO0 = %08X", MMU_ENTRYLO0);
 		Debug (0, "- ENTRYLO1 = %08X", MMU_ENTRYLO1);
 		Debug (0, "- G = %08X", (MMU_ENTRYLO0 & MMU_ENTRYLO1 & 0x1));
-	//}*/
+	}//*/
 	tlb[j].hh = MMU_PAGEMASK;
 	tlb[j].hl = MMU_ENTRYHI & (~MMU_PAGEMASK);
 	tlb[j].lh = MMU_ENTRYLO0 & 0xFFFFFFFE;
 	tlb[j].ll = MMU_ENTRYLO1 & 0xFFFFFFFE;
 	tlb[j].isGlobal = (u8)(MMU_ENTRYLO0 & MMU_ENTRYLO1 & 0x1);
 
-		int page = ((tlb[j].hh >> 13) + 1) * 4096;
-		int mask = ~(tlb[j].hh | 0x1fff);
-		int maskLow = (tlb[j].hh | 0x1fff);
-	//Debug (0, "Page = %08X", page);
-	//Debug (0, "mask = %08X", mask);
-	//Debug (0, "maskLow = %08X", maskLow);
-	//Debug (0, "hl = %08X", tlb[j].hl);
+//		int page = ((tlb[j].hh >> 13) + 1) * 4096;
+//		int mask = ~(tlb[j].hh | 0x1fff);
+//		int maskLow = (tlb[j].hh | 0x1fff);
+//	Debug (0, "Page = %08X", page);
+//	Debug (0, "mask = %08X", mask);
+//	Debug (0, "maskLow = %08X", maskLow);
+//	Debug (0, "hl = %08X", tlb[j].hl);
 	TLBLUT.IndexEntry (j);
 }
 /*
@@ -354,13 +439,13 @@ void opTLBWI(void){
 void opTLBWR(void){
 	u32 j = MMU_RANDOM & 0x1f;
 	TLBLUT.ClearEntry (j); // This shouldn't be here.  This will only prove to make things redundant
-	/*	Debug (0, "TLB Write Random @ %08X", pc-4);
+/*		Debug (0, "TLB Write Random @ %08X", pc-4);
 		Debug (0, "- RANDOM    = %08X", MMU_RANDOM);
 		Debug (0, "- PAGEMASK = %08X", MMU_PAGEMASK);
 		Debug (0, "- ENTRYHI  = %08X", MMU_ENTRYHI);
 		Debug (0, "- ENTRYLO0 = %08X", MMU_ENTRYLO0);
 		Debug (0, "- ENTRYLO1 = %08X", MMU_ENTRYLO1);
-		Debug (0, "- G = %08X", (MMU_ENTRYLO0 & MMU_ENTRYLO1 & 0x1));*/
+		Debug (0, "- G = %08X", (MMU_ENTRYLO0 & MMU_ENTRYLO1 & 0x1));//*/
 	tlb[j].hh = MMU_PAGEMASK;
 	tlb[j].hl = MMU_ENTRYHI & (~MMU_PAGEMASK);
 	tlb[j].lh = MMU_ENTRYLO0 & 0xFFFFFFFE;

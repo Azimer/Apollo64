@@ -6,22 +6,15 @@
 --------------------Configuration: Apollo - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\Azimer1\LOCALS~1\Temp\RSP46F.tmp" with contents
+Creating temporary file "C:\DOCUME~1\Azimer\LOCALS~1\Temp\RSP8D.tmp" with contents
 [
 /nologo /G5 /ML /W3 /GX /O2 /Ob2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FAs /Fa"Release/" /Fp"Release/Apollo.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
-"D:\Projects\Apollo-old\WinMain.cpp"
-"D:\Projects\Apollo-old\rcp.cpp"
-"D:\Projects\Apollo-old\MMU Machine.cpp"
-"D:\Projects\Apollo-old\EventScheduler.cpp"
-"D:\Projects\Apollo-old\R4K Memory.cpp"
-"D:\Projects\Apollo-old\EmuMain.cpp"
-"D:\Projects\Apollo-old\Audio.cpp"
-"D:\Projects\Apollo-old\Plugins.cpp"
+"C:\Projects\Apollo-old\Audio.cpp"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\Azimer1\LOCALS~1\Temp\RSP46F.tmp" 
-Creating temporary file "C:\DOCUME~1\Azimer1\LOCALS~1\Temp\RSP470.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\Azimer\LOCALS~1\Temp\RSP8D.tmp" 
+Creating temporary file "C:\DOCUME~1\Azimer\LOCALS~1\Temp\RSP8E.tmp" with contents
 [
-kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib113.lib /nologo /subsystem:windows /incremental:no /pdb:"Release/Apollo.pdb" /machine:I386 /nodefaultlib:"MSVCRT" /out:"d:\emu\n64\pj643\Apollo.exe" 
+zlib.lib kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib /nologo /subsystem:windows /incremental:no /pdb:"Release/Apollo.pdb" /machine:I386 /nodefaultlib:"MSVCRT" /out:"c:\Emu\N64\Project64\Apollo.exe" 
 ".\Release\unzip.obj"
 ".\Release\zip.obj"
 ".\Release\console.obj"
@@ -31,13 +24,19 @@ kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.l
 ".\Release\debug.obj"
 ".\Release\dump_rsp.obj"
 ".\Release\rsp.obj"
+".\Release\jpgdct.obj"
 ".\Release\rcp.obj"
 ".\Release\RspDump.obj"
 ".\Release\FPU Machine.obj"
 ".\Release\MMU Machine.obj"
 ".\Release\R4K Machine.obj"
+".\Release\Recompiler.obj"
+".\Release\RecompilerDebug.obj"
+".\Release\RecompilerHLE.obj"
 ".\Release\EventScheduler.obj"
+".\Release\Fpu Machine2.obj"
 ".\Release\R4K Memory.obj"
+".\Release\TLB.obj"
 ".\Release\EmuMain.obj"
 ".\Release\SaveChips.obj"
 ".\Release\Audio.obj"
@@ -45,36 +44,22 @@ kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.l
 ".\Release\Plugins.obj"
 ".\Release\Video.obj"
 ".\Release\rscript.res"
+".\Release\DynaCompile.obj"
+".\Release\DynaMain.obj"
+".\Release\DynaOpcodes.obj"
 ]
-Creating command line "link.exe @C:\DOCUME~1\Azimer1\LOCALS~1\Temp\RSP470.tmp"
+Creating command line "link.exe @C:\DOCUME~1\Azimer\LOCALS~1\Temp\RSP8E.tmp"
 <h3>Output Window</h3>
 Compiling...
-WinMain.cpp
-D:\Projects\Apollo-old\WinMain.cpp(563) : warning C4805: '==' : unsafe mix of type 'int' and type 'const bool' in operation
-D:\Projects\Apollo-old\WinMain.cpp(596) : warning C4018: '>' : signed/unsigned mismatch
-rcp.cpp
-D:\Projects\Apollo-old\rcp.cpp(145) : warning C4101: 'crc2' : unreferenced local variable
-D:\Projects\Apollo-old\rcp.cpp(144) : warning C4101: 'buff' : unreferenced local variable
-MMU Machine.cpp
-D:\Projects\Apollo-old\MMU Machine.cpp(413) : warning C4018: '<' : signed/unsigned mismatch
-EventScheduler.cpp
-D:\Projects\Apollo-old\EventScheduler.cpp(158) : warning C4018: '<=' : signed/unsigned mismatch
-R4K Memory.cpp
-D:\Projects\Apollo-old\R4K Memory.cpp(549) : warning C4018: '<=' : signed/unsigned mismatch
-D:\Projects\Apollo-old\R4K Memory.cpp(553) : warning C4018: '<=' : signed/unsigned mismatch
-D:\Projects\Apollo-old\R4K Memory.cpp(580) : warning C4018: '<=' : signed/unsigned mismatch
-D:\Projects\Apollo-old\R4K Memory.cpp(590) : warning C4018: '<=' : signed/unsigned mismatch
-EmuMain.cpp
 Audio.cpp
-Plugins.cpp
-D:\Projects\Apollo-old\Plugins.cpp(104) : warning C4101: 'index' : unreferenced local variable
-D:\Projects\Apollo-old\Plugins.cpp(171) : warning C4101: 'CurrentPlugin' : unreferenced local variable
+C:\Projects\Apollo-old\Audio.cpp(99) : warning C4101: 'CountCycles' : unreferenced local variable
+C:\Projects\Apollo-old\Audio.cpp(120) : warning C4244: '=' : conversion from 'const double' to 'unsigned long', possible loss of data
 Linking...
 
 
 
 <h3>Results</h3>
-Apollo.exe - 0 error(s), 12 warning(s)
+Apollo.exe - 0 error(s), 2 warning(s)
 </pre>
 </body>
 </html>

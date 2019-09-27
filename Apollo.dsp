@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib113.lib /nologo /subsystem:windows /machine:I386 /nodefaultlib:"MSVCRT" /out:"d:\emu\n64\pj643\Apollo.exe"
+# ADD LINK32 zlib.lib kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib /nologo /subsystem:windows /machine:I386 /nodefaultlib:"MSVCRT" /out:"c:\Emu\N64\Project64\Apollo.exe"
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "Apollo - Win32 Debug"
@@ -81,7 +81,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 dxguid.lib ddraw.lib kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib113.lib /nologo /subsystem:windows /debug /machine:I386 /out:"D:\emu\n64\pj643\Apollo.exe"
+# ADD LINK32 dxguid.lib ddraw.lib kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib.lib /nologo /subsystem:windows /debug /machine:I386 /out:"c:\Emu\N64\Project64\Apollo.exe"
 # SUBTRACT LINK32 /profile
 
 !ELSEIF  "$(CFG)" == "Apollo - Win32 ReleaseProfiled"
@@ -110,7 +110,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib advapi32.lib comdlg32.lib dxguid.lib ddraw.lib winmm.lib /nologo /subsystem:windows /machine:I386
 # SUBTRACT BASE LINK32 /pdb:none
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib113.lib /nologo /subsystem:windows /profile /map /machine:IX86 /nodefaultlib:"LIBCMT"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib zlib.lib /nologo /subsystem:windows /profile /map /debug /machine:IX86 /nodefaultlib:"LIBCMT" /out:"c:\Emu\N64\Project64\Apollo.exe"
 
 !ENDIF 
 
@@ -214,6 +214,10 @@ SOURCE=.\RSP\rsp_registers.h
 # End Group
 # Begin Source File
 
+SOURCE=.\jpgdct.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\rcp.cpp
 # End Source File
 # Begin Source File
@@ -240,9 +244,87 @@ SOURCE=".\MMU Machine.cpp"
 SOURCE=".\R4K Machine.cpp"
 # End Source File
 # End Group
+# Begin Group "Dynarec"
+
+# PROP Default_Filter ""
+# Begin Group "old"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\DynaOps.cpp
+# PROP Exclude_From_Build 1
+# End Source File
+# End Group
+# Begin Group "new"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\dynarec\Recompiler.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\dynarec\Recompiler.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\dynarec\RecompilerDebug.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\dynarec\RecompilerDebug.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\dynarec\RecompilerHLE.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\dynarec\RecompilerHLECodes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\dynarec\X86Ops.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\dynarec\X86Regs.h
+# End Source File
+# End Group
+# Begin Source File
+
+SOURCE=.\DynaCompile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\DynaCompile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\DynaMain.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\DynaMain.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\DynaOpcodes.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\x86ops.h
+# PROP Exclude_From_Build 1
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\EventScheduler.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=".\Fpu Machine2.cpp"
 # End Source File
 # Begin Source File
 
@@ -254,6 +336,8 @@ SOURCE=".\r4300i Compiler.cpp"
 
 !ELSEIF  "$(CFG)" == "Apollo - Win32 Debug"
 
+# PROP Exclude_From_Build 1
+
 !ELSEIF  "$(CFG)" == "Apollo - Win32 ReleaseProfiled"
 
 !ENDIF 
@@ -262,6 +346,10 @@ SOURCE=".\r4300i Compiler.cpp"
 # Begin Source File
 
 SOURCE=".\R4K Memory.cpp"
+# End Source File
+# Begin Source File
+
+SOURCE=.\TLB.cpp
 # End Source File
 # End Group
 # Begin Source File
@@ -345,6 +433,10 @@ SOURCE=.\CpuMain.h
 SOURCE=.\EmuMain.H
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\COMMON.H
+# End Source File
 # End Group
 # Begin Group "Resource Files"
 
@@ -360,6 +452,10 @@ SOURCE=.\apollo.ico
 # Begin Source File
 
 SOURCE=.\rscript.rc
+# End Source File
+# Begin Source File
+
+SOURCE=.\todo.txt
 # End Source File
 # End Group
 # End Target

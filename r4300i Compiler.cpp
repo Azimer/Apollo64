@@ -173,9 +173,9 @@ void r4300iRecompiler::Log(char * Message, ...) {
 		_splitpath(Path, Drive, Dir, 0, 0);
 		sprintf(Path, "%s%s%s", Drive, Dir, "RecompileX86Code.log");
 
-		if (NULL == (this->hStream = fopen(Path, "a+"))) {
+		//if (NULL == (this->hStream = fopen(Path, "a+"))) {
 			return;
-		}
+		//}
 	}
 
 	char Msg[512];
@@ -303,6 +303,9 @@ void r4300i_Compiler_Branch(void * Helper, BOOL Link) {
 		if ((Recompiler.CurrentOpcode.func == 0x2) || (Recompiler.CurrentOpcode.func == 0x3)) {
 			bIsLikely = TRUE;
 		}
+	} else if (Recompiler.CurrentOpcode.op == 0x11) {
+		if (Recompiler.CurrentOpcode.rt & 0x2)
+			bIsLikely = TRUE;
 	} else if (Recompiler.CurrentOpcode.op & 0x10) {
 		bIsLikely = TRUE;
 	}
@@ -359,6 +362,18 @@ void r4300i_Compiler_Branch(void * Helper, BOOL Link) {
 
 	/* delay slot is already done */
 	Recompiler.ProgramCounter += 4;
+}
+void r4300i_Compiler_BC1F(void) {
+	//0x800889b4
+	Recompiler.BranchCompare = !(FpuControl[31] & 0x00800000) ? TRUE : FALSE;
+/*	if (Recompiler.BranchCompare == FALSE)
+		__asm int 3;*/
+}
+
+void r4300i_Compiler_BC1T(void) {
+	Recompiler.BranchCompare = (FpuControl[31] & 0x00800000) ? TRUE : FALSE;
+	/*if (Recompiler.BranchCompare == TRUE)
+		__asm int 3;*/
 }
 
 void r4300i_Compiler_BEQ(void) {
@@ -554,8 +569,8 @@ void r4300iCompiler_Opcode(void) {
 		case 0x03: r4300i_Compiler_Branch(&r4300i_Compiler_BGEZ, FALSE); break;
 		case 0x10: r4300i_Compiler_Branch(&r4300i_Compiler_BLTZ, TRUE); break;
 		case 0x11: r4300i_Compiler_Branch(&r4300i_Compiler_BGEZ, TRUE); break;
-		case 0x12: Recompiler.Log("REGIMM_BLTZALL"); break;
-		case 0x13: Recompiler.Log("REGIMM_BGEZALL"); break;
+		case 0x12: __asm int 3;//Recompiler.Log("REGIMM_BLTZALL"); break;
+		case 0x13: __asm int 3;//Recompiler.Log("REGIMM_BGEZALL"); break;
 
 		default:
 			Recompiler.Log("");
@@ -593,11 +608,12 @@ void r4300iCompiler_Opcode(void) {
 	case 0x11: /* R4300I_COP1 */
 		switch (Recompiler.CurrentOpcode.rs) {
 		case 0x08: /* COP1_BRANCH */
+			//__asm int 3; // I think this is the problem
 			switch (Recompiler.CurrentOpcode.rt & 3){
-			case 0x00: Recompiler.Log("COP1_BC1F"); break;
-			case 0x01: Recompiler.Log("COP1_BC1T"); break;
-			case 0x02: Recompiler.Log("COP1_BC1FL"); break;
-			case 0x03: Recompiler.Log("COP1_BC1TL"); break;
+			case 0x00: r4300i_Compiler_Branch(&r4300i_Compiler_BC1F, FALSE); break;
+			case 0x01: r4300i_Compiler_Branch(&r4300i_Compiler_BC1T, FALSE); break;
+			case 0x02: r4300i_Compiler_Branch(&r4300i_Compiler_BC1F, FALSE); break;
+			case 0x03: r4300i_Compiler_Branch(&r4300i_Compiler_BC1T, FALSE); break;
 				
 			default:
 				Recompiler.Log("");
@@ -740,7 +756,7 @@ void * r4300iCompiler_CreateBlock(void) {
 		/* give the child opcode the parents index in check values */
 		Recompiler.SetParentAddress(Recompiler.ProgramCounter, pc);
 
-		if (++TestValue == 128 || IsOpcodeBranch(Recompiler.ProgramCounter)) {
+		if (++TestValue == 1 || IsOpcodeBranch(Recompiler.ProgramCounter)) {
 			extern int InterruptTime;
 
 			AddConstToVariable((incrementer * TestValue) * -1, &InterruptTime, "Instruction Count");

@@ -54,9 +54,7 @@
 
 #define ENABLE_RDRAM_HACK
 
-extern int InterruptTime;
-
-#ifdef FAST_INFINITE_LOOP // TODO: Rewrite these for ASM use
+#ifdef FAST_INFINITE_LOOP
 #define FAST_INFINITE_LOOP_JUMP   extern u32 VsyncTime,instructions; if (target==pc-4 && pr32(pc)==0) { InterruptTime = 0; };
 #define FAST_INFINITE_LOOP_BRANCH extern u32 VsyncTime,instructions; if (target==pc-4 && pr32(pc)==0 && sop.rt==sop.rs) { InterruptTime = 0; };
 #else
@@ -88,10 +86,13 @@ extern DWORD fsize; // Needed for some rom hacks
 int inDelay=0; // In a delay slot
 		   
 void OpcodeLookup (DWORD, char *); // Used for Debugging, Defined in R4KDebugger
+void DynaReset (); // Reset the dynarec...
 
 void doInstr(void) {
 	inDelay = 1;
-
+//	if (pc < 0xA0000000)
+//	if (TLBLUT[pc>>12] > 0xFFFFFFF0)
+//		__asm int 3;
 	opcode = vr32(pc);
 	*(DWORD*)&sop = opcode;
 
@@ -210,6 +211,7 @@ void ResetCPU (void) {
 	SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) Buffer);
 	ClearEventList (); // Clears the Interrupt Processing...
 	TLBLUT.ResetTLB(); // Clear TLB Table
+	DynaReset ();
 
 	switch (RomHeader.Country_Code)	{
 		// NTSC
@@ -276,16 +278,22 @@ void ResetCPU (void) {
 	} else {
 		pw32 (hack      , 0x00400000); // Memory Size Hack
 	}
+	u64 crc = (u64)RomHeader.CRC1 << 32 | RomHeader.CRC2;
+	Debug (0, "CRC: %08X%08X CC: %02X", RomHeader.CRC1, RomHeader.CRC2, RomHeader.Country_Code);
 	pw32 (0xA02FE1C0, 0xAD170014); // DK64 Hack...
 	pw32 (0xA02FB1F4, 0xAD090010); // Banjo Tooie Hack
 	pw32 (0xA5000508, 0x05080508); // F-Zero X Hack for N64DD - Thanks F|RES and LaC!
+	// Golden Eye 007 (USA) (Need to add JAP and EURO versions...)
+	if ((crc == 0xdcbc50d109fd1aa3) && (RomHeader.Country_Code == 0x45)) {
+		//TLBLUT.mapmem (0x7f000000,0x10034b30,0x1000000); // TODO: I need to fix this so it works again...
+	}
 	
 #endif
 //	void InitCoreSync ();
 //	InitCoreSync ();
 }
 
-static void r4300i_HandleErrorRegister(void) {
+void r4300i_HandleErrorRegister(void) {
 	char buffer[255];
 	Debug (0, "CpuRegs[0] != 0, PC = %08X", pc-4);
 	CpuRegs[0] = 0;
@@ -293,128 +301,41 @@ static void r4300i_HandleErrorRegister(void) {
 	Debug (0, buffer);
 }
 
-#define MAXPCSIZE 0x1F
+#define MAXPCSIZE 0x7F
 
-u32 lastPC[MAXPCSIZE];
+u32 lastPC[MAXPCSIZE+1];
 u32 lastPCPtr = 0;
-u32 lastVal1 = 0;
-u32 lastVal2 = 0;
-u32 lastVal3 = 0;
 
 void Emulate(void) {
 
 	if (RegSettings.dynamicEnabled == true) {
 		//RegSettings.dynamicEnabled = false;
 		void R4KDyna_Execute (void);
-		//R4KDyna_Execute (); // Just run once so we can figure stuff out...
-		//return;
+		R4KDyna_Execute (); // Just run once so we can figure stuff out...
+		return;
 
 
-		//Debug (1, "The dynarec isn't enabled... Going interpretive...");
+		Debug (1, "The dynarec isn't enabled... Going interpretive...");
 		//extern void r4300iCompiler_Execute(void);
 		//r4300iCompiler_Execute ();
-		//return;
+		return;
 	}
 
 	while (!cpuIsReset) {
 
-		//instructions += incrementer;
 		InterruptTime -= RegSettings.VSyncHack;
 
 		if ((InterruptTime <= 0))
 			CheckInterrupts();
-/*
-		if (pc == 0x40025620)
-			vw32 (0x40046D70, 0); // Indiana Jones HACK (Only seems to be needed because of bad audio support... DAMN MusyX!!!)
-			*/
-//		inline u32 vr32(u32 location) { return ((u32*)returnMemPointer(location))[0];}
-// TLB - WIP
-		/*
+		extern u8 *rdram;
 		if (TLBLUT[pc>>12] > 0xFFFFFFF0) {
-			((u32*)&sop)[0] = vr32(pc); // Should Generate an Exception
-			__asm int 3;
-		} else {
-			((u32*)&sop)[0] = ((u32 *)returnMemPointer(TLBLUT[pc>>12]+(pc & 0xfff)))[0];
-		}*/
-//		((u32*)&sop)[0] = ((u32 *)returnMemPointer(TLBLUT[pc>>12]+(pc & 0xfff)))[0];
-//		if (((u32*)&sop)[0] != vr32(pc))
-//			__asm int 3;
-//			((u32*)&sop)[0] = vr32(pc);
-//		else
-		//((u32*)&sop)[0] = (TLBLUT[pc>>12]) + (pc & 0xfff);
-/*
-		lastPC[lastPCPtr] = pc;
-		lastPCPtr = (lastPCPtr+1) & 0x1F;*/
-/*
-		if (pc == 0xE009799C) {
-			for (int x = 1; x < 0x20; x++) {
-				Debug (0, "pc: %08X", lastPC[(lastPCPtr+x)&0x1f]);
-			}
+			QuickTLBExcept ();
 		}
-		if (pc == 0xE0097A00) {
-			extern char *r4kreg[0x20];
-			for (int x = 0; x < 0x20; x++) {
-				Debug (0, "%s = %08X", r4kreg[x], CpuRegs[x]);
-			}
-		}*/
-		((u32*)&sop)[0] = vr32(pc);
+		//lastPC[lastPCPtr++] = pc;
+		//lastPCPtr &= MAXPCSIZE;
+		((u32*)&sop)[0] = ((u32 *)returnMemPointer(TLBLUT[pc>>12]+(pc & 0xfff)))[0];
 		pc+=4;
 		r4300i[sop.op]();
-/*
-		extern u8 *rdram;
-		if (*(u32 *)(rdram+0x1052CC) != lastVal1) {
-			Debug (0, "pc: %08X - 1 Value Changes: %08X, %08X", pc, lastVal1, *(u32 *)(rdram+0x1052CC));
-			lastVal1 = *(u32 *)(rdram+0x1052CC);
-		}
-		if (*(u32 *)(rdram+0xBFEE0) != lastVal2) {
-			Debug (0, "pc: %08X - 2 Value Changes: %08X, %08X", pc, lastVal2, *(u32 *)(rdram+0xBFEE0));
-			lastVal2 = *(u32 *)(rdram+0xBFEE0);
-		}
-		if (*(u32 *)(rdram+0xB67C8) != lastVal3) {
-			Debug (0, "pc: %08X - 3 Value Changes: %08X, %08X", pc, lastVal3, *(u32 *)(rdram+0xB67C8));
-			lastVal3 = *(u32 *)(rdram+0xB67C8);
-		}*/
-		/*
-		if (pc == 0x800A272C) {
-			__asm int 3;
-		}
-/*
-		if (pc == 0x8009f1d8) {
-
-			DisassembleRange (0x80060000, 0x800A0000); // Disassemble the Bootcode
-			cpuIsReset = true;
-			cpuIsDone = true;
-			__asm int 3;
-		}
-*//*
-		if (pc == 0x80067504) {
-			Debug (0, "Nasty? RA=%08X", CpuRegs[0x1f]);
-			for (int x = 1; x < 0x20; x++) {
-				Debug (0, "pc: %08X", lastPC[(lastPCPtr+x)&0x1f]);
-			}
-		}*/
-		/*
-
-		if (pc == 0x8009FDEC) {
-			extern char *r4kreg[0x20];
-			for (int x = 0; x < 0x20; x++) {
-				Debug (0, "%s = %08X", r4kreg[x], CpuRegs[x]);
-			}
-		}*/
-		/*
-		if (pc == 0x8009FDF0) {
-			//pc = 0x8009FEB4;
-			//Debug (0, "Nasty! RA=%08X", CpuRegs[0x1f]);
-			//Debug (0, "V1 = %08X", CpuRegs[3]);
-			//Debug (0, "S0 = %08X", CpuRegs[16]);
-			//CpuRegs[0x4] = 0x803A54F8;
-			/*for (int x = 1; x < 0x20; x++) {
-				Debug (0, "pc: %08X", lastPC[(lastPCPtr+x)&0x1f]);
-			}/*
-			cpuIsReset = true;
-			cpuIsDone = true;*/
-		/*}*/
-
 
 		if (CpuRegs[0] != 0) {
 			r4300i_HandleErrorRegister();			
@@ -423,11 +344,6 @@ void Emulate(void) {
 	}
 }
 
-		//if (pc == 0x40025620) {
-		//	vw32 (0x40046D70, 0); // Indiana Jones HACK (Only seems to be needed because of bad audio support... DAMN MusyX!!!)
-		//			40025620  LUI	V0, 0x4004
-		//			40025624  LBU	V1, 0x6D70(V0)
-		//}
 void opCOP0(void) {
 	if (sop.rs == 16) MmuSpecial[sop.func]();
 	else MmuNormal[sop.rs]();
@@ -440,6 +356,7 @@ void opCOP2(void) {
 
 void opNI(void) {
 	Debug(0,"%08X: NI called. op%02X func%02X rs%02X",pc-4,sop.op,sop.func,sop.rs);
+	Debug(0,"%08X: NI called. %08X",pc-4,*(u32 *)&sop);
 	CPU_ERROR("NI Called",pc);
 	cpuIsDone = cpuIsReset = true;
 }
@@ -478,7 +395,24 @@ void opANDI(void) { // Last Checked 01-14-01
 	CpuRegs[sop.rt] = CpuRegs[sop.rs] & (u64)((u16)opcode);
 }
 
+void Test64bit (u64 x, u64 y) { // *** Temporary Testing ***
+	static u32 last64bit = 0;
+	char buffer[100];
+	if (last64bit == pc)
+		return;
+	if ( ( (u32)x == (u32)y ) !=
+		 ( (u64)x == (u64)y ) ) {
+		//Debug (0, "Need 64bit at %08X", pc);
+		last64bit = pc;
+		//OpcodeLookup(pc-4, buffer);
+		//Debug (0, "%08x: %s", pc-4, buffer);
+		//OpcodeLookup(pc, buffer);
+		//Debug (0, "%08x: %s", pc, buffer);
+	}
+}
+
 void opBEQ(void) { // Last Checked 01-14-01
+	Test64bit (CpuRegs[sop.rt], CpuRegs[sop.rs]);
 	if (CpuRegs[sop.rt] == CpuRegs[sop.rs])	{
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -489,6 +423,7 @@ void opBEQ(void) { // Last Checked 01-14-01
 }
 
 void opBEQL(void) { // Last Checked 01-14-01
+	Test64bit (CpuRegs[sop.rt], CpuRegs[sop.rs]);
 	if (CpuRegs[sop.rt] == CpuRegs[sop.rs]) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -501,6 +436,7 @@ void opBEQL(void) { // Last Checked 01-14-01
 }
 
 void opBGEZ(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	if (((s64)CpuRegs[sop.rs]) >= 0) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -511,6 +447,7 @@ void opBGEZ(void) { // Last Checked 01-14-01
 }
 
 void opBGEZAL(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	CpuRegs[31] = pc+4;
 	if (((s64)CpuRegs[sop.rs]) >= 0) {
 		u32 target = ((s16)opcode);
@@ -522,6 +459,7 @@ void opBGEZAL(void) { // Last Checked 01-14-01
 }
 
 void opBGEZALL(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	CpuRegs[31] = pc+4;
 	if (((s64)CpuRegs[sop.rs]) >= 0) {
 		u32 target = ((s16)opcode);
@@ -535,6 +473,7 @@ void opBGEZALL(void) { // Last Checked 01-14-01
 }
 
 void opBGEZL(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	if (((s64)CpuRegs[sop.rs]) >= 0) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -546,6 +485,7 @@ void opBGEZL(void) { // Last Checked 01-14-01
 }
 
 void opBGTZ(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	if (((s64)CpuRegs[sop.rs]) > 0) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -556,6 +496,7 @@ void opBGTZ(void) { // Last Checked 01-14-01
 }
 
 void opBGTZL(void) {
+	Test64bit (0, CpuRegs[sop.rs]);
 	if (((s64)CpuRegs[sop.rs]) > 0) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -567,6 +508,7 @@ void opBGTZL(void) {
 }
 
 void opBLEZ(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	if (((s64)CpuRegs[sop.rs]) <= 0) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -577,6 +519,7 @@ void opBLEZ(void) { // Last Checked 01-14-01
 }
 
 void opBLEZL(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	if (((s64)CpuRegs[sop.rs]) <= 0) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -588,6 +531,7 @@ void opBLEZL(void) { // Last Checked 01-14-01
 }
 
 void opBLTZ(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	if (((s64)CpuRegs[sop.rs]) < 0) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -598,6 +542,7 @@ void opBLTZ(void) { // Last Checked 01-14-01
 }
 
 void opBLTZAL(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	CpuRegs[31] = pc+4;
 	if (((s64)CpuRegs[sop.rs]) < 0) {
 		u32 target = ((s16)opcode);
@@ -608,6 +553,7 @@ void opBLTZAL(void) { // Last Checked 01-14-01
 }
 
 void opBLTZALL(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	CpuRegs[31] = pc+4;
 	if (((s64)CpuRegs[sop.rs]) < 0) {
 		u32 target = ((s16)opcode);
@@ -620,6 +566,7 @@ void opBLTZALL(void) { // Last Checked 01-14-01
 }
 
 void opBLTZL(void) { // Last Checked 01-14-01
+	Test64bit (0, CpuRegs[sop.rs]);
 	if (((s64)CpuRegs[sop.rs]) < 0) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -631,6 +578,7 @@ void opBLTZL(void) { // Last Checked 01-14-01
 }
 
 void opBNE(void) { // Last Checked 12-28-00
+	Test64bit (CpuRegs[sop.rt], CpuRegs[sop.rs]);
 	if (CpuRegs[sop.rt] != CpuRegs[sop.rs]) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -667,6 +615,7 @@ if (target==pc-4 && pr32(pc)==0 && sop.rt==sop.rs) instructions = VsyncTime-1;
 //800CDBC4: ADDIU	V0, V0, 0x0004
 
 void opBNEL(void) { // Last Checked 01-14-01
+	Test64bit (CpuRegs[sop.rt], CpuRegs[sop.rs]);
 	if (CpuRegs[sop.rt] != CpuRegs[sop.rs]) {
 		u32 target = ((s16)opcode);
 		target = pc + (target << 2);
@@ -851,6 +800,8 @@ void opJAL(void) { // Last Checked 01-14-01
 /*	if (0x8009F1D8 == target) // Zelda Hack
 		return;*/
 	pc = target;
+//	void RecompilerMain ();
+//	RecompilerMain ();
 }
 
 void opJALR(void) { // Last Checked 01-14-01
@@ -1154,7 +1105,19 @@ void opSDR(void) { // Fixed: 10-29-01 (addr&3 not addr&7 and addr&0xffffffffc)
 }
 
 void opSH(void) { // Last Checked 01-14-01
-	vw16(CpuRegs[sop.rs] + (s16)opcode,(u16)CpuRegs[sop.rt]);
+//	u32 addy = (CpuRegs[sop.rs] + (s16)opcode);
+//	if (pc == 0x80001844) {
+//		static FILE *dfile = fopen ("c:\\debug.txt", "wt");
+//		fprintf (dfile, "Value: %08X\n", CpuRegs[sop.rs]);
+//	}
+//	if (CpuRegs[sop.rs] == 0x4005)
+//		Debug (0, "PC = %08X", pc);
+//	if (addy & 1) {
+//		void AddressErrorException (bool store);
+//		AddressErrorException (true);
+//	} else {
+		vw16(CpuRegs[sop.rs] + (s16)opcode,(u16)CpuRegs[sop.rt]);
+//	}
 }
 
 void opSLL(void) { // Last Checked 01-14-01
@@ -1345,6 +1308,8 @@ void opXORI(void) { // Last Checked 01-14-01
 
 void opCOP1(void);
 
+//void RecOp (void);
+
 void (*r4300i[0x40])() = {
     opSPECIAL,	opREGIMM,	opJ,	opJAL,		opBEQ,	opBNE,	opBLEZ,	opBGTZ, //00-07
     opADDI,		opADDIU,	opSLTI,	opSLTIU,	opANDI,	opORI,	opXORI,	opLUI,	//08-0F
@@ -1357,14 +1322,14 @@ void (*r4300i[0x40])() = {
 };
 
 void (*special[0x40])() = {
-    opSLL,	opNI,		opSRL,	opSRA,	opSLLV,		opNI,		opSRLV,		opSRAV,  
-    opJR,	opJALR,		opNI,	opNI,	opSYSCALL,	opBREAK,	opNI,		opSYNC,  
-    opMFHI,	opMTHI,		opMFLO,	opMTLO,	opDSLLV,	opNI,		opDSRLV,	opDSRAV,  
-    opMULT,	opMULTU,	opDIV,	opDIVU,	opDMULT,	opDMULTU,	opDDIV,		opDDIVU,
-    opADD,	opADDU,		opSUB,	opSUBU,	opAND,		opOR,		opXOR,		opNOR,  
-    opNI,	opNI,		opSLT,	opSLTU,	opDADD,		opDADDU,	opDSUB,		opDSUBU,  
-    opTGE,	opTGEU,		opTLT,	opTLTU,	opTEQ,		opNI,		opTNE,		opNI,  
-    opDSLL,	opNI,		opDSRL,	opDSRA,	opDSLL32,	opNI,		opDSRL32,	opDSRA32  
+    opSLL,	opNI,		opSRL,	opSRA,	opSLLV,		opNI,		opSRLV,		opSRAV,  // 00-07
+    opJR,	opJALR,		opNI,	opNI,	opSYSCALL,	opBREAK,	opNI,		opSYNC,  // 08-0F
+    opMFHI,	opMTHI,		opMFLO,	opMTLO,	opDSLLV,	opNI,		opDSRLV,	opDSRAV, // 10-17
+    opMULT,	opMULTU,	opDIV,	opDIVU,	opDMULT,	opDMULTU,	opDDIV,		opDDIVU, // 18-1F
+    opADD,	opADDU,		opSUB,	opSUBU,	opAND,		opOR,		opXOR,		opNOR,   // 20-27
+    opNI,	opNI,		opSLT,	opSLTU,	opDADD,		opDADDU,	opDSUB,		opDSUBU, // 28-2F
+    opTGE,	opTGEU,		opTLT,	opTLTU,	opTEQ,		opNI,		opTNE,		opNI,    // 30-37
+    opDSLL,	opNI,		opDSRL,	opDSRA,	opDSLL32,	opNI,		opDSRL32,	opDSRA32 // 38-3F
 };
 
 void (*regimm[0x20])() = {
