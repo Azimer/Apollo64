@@ -428,10 +428,10 @@ void ToggleCPU (void);
 					//void InvokeOpTester ();
 					//InitializeDebugger();
 					//InvokeOpTester ();
-					if (cpuIsPaused == false) {
-						ToggleCPU ();
-					}
-					OpenDebuggerWindow (GhInst, hWnd);
+					//if (cpuIsPaused == false) {
+					//	ToggleCPU ();
+					//}
+					//OpenDebuggerWindow (GhInst, hWnd);
 					break;
 				case ID_CPU_COMPRESS: {
 					if (GET_MENU(ID_CPU_COMPRESS) == MF_CHECKED) {

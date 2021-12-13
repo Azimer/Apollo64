@@ -86,7 +86,7 @@ extern DWORD fsize; // Needed for some rom hacks
 int inDelay=0; // In a delay slot
 		   
 void OpcodeLookup (DWORD, char *); // Used for Debugging, Defined in R4KDebugger
-void DynaReset (); // Reset the dynarec...
+//void DynaReset (); // Reset the dynarec...
 
 void doInstr(void) {
 	inDelay = 1;
@@ -211,7 +211,7 @@ void ResetCPU (void) {
 	SendMessage(hwndStatus, SB_SETTEXT, 0, (LPARAM)(LPSTR) Buffer);
 	ClearEventList (); // Clears the Interrupt Processing...
 	TLBLUT.ResetTLB(); // Clear TLB Table
-	DynaReset ();
+	//DynaReset ();
 
 	switch (RomHeader.Country_Code)	{
 		// NTSC

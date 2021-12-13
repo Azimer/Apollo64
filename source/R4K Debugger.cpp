@@ -199,7 +199,7 @@ A40004E8  r4300 00000015
 A40009D0  r4300 00000024
 A400098C  r4300 00000028
 A40003F8  r4300 0000002F*/
-bool FindHLEFunc(u32 addy, char *func);
+//bool FindHLEFunc(u32 addy, char *func);
 
 void OpcodeLookup (DWORD addy, char *out) {
 	char func[100];
@@ -216,11 +216,11 @@ void OpcodeLookup (DWORD addy, char *out) {
 		case 0x00: SPECIALLookup (out); break;
 		case 0x01: REGIMMLookup (out, addy); break;
 		case 0x02: sprintf (out, "J	%08X", ((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff))); break;
-		case 0x03: if (FindHLEFunc(((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff)), func) == false)
+		case 0x03: //if (FindHLEFunc(((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff)), func) == false)
 					   sprintf (out, "JAL	%08X", ((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff)));
-				   else
-					   sprintf (out, "JAL %s(%08X)", func, ((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff)));
-				   break;
+				   //else
+					//   sprintf (out, "JAL %s(%08X)", func, ((addy+4) & 0xf0000000) + (((((u32 *)&dop)[0] << 2) & 0x0fffffff)));
+				   //break;
 		case 0x04: if (dop.rt) sprintf (out, "BEQ	%s, %s, 0x%08X", r4kreg[dop.rs], r4kreg[dop.rt], addy+4+(((s16 *)&dop)[0]<<2));
 				   else if (dop.rs) sprintf (out, "BEQZ	%s, 0x%08X", r4kreg[dop.rs], addy+4+(((s16 *)&dop)[0]<<2)); 
 				   else sprintf (out, "B	0x%08X", addy+4+(((s16 *)&dop)[0]<<2)); break;

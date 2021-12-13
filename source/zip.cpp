@@ -2,6 +2,10 @@
 	Purpose of this file is to simulate the fopen/fclose/fread/fseek stdio functions
 	for use with compressed N64 rom images.
 */
+
+// Disable SAFESEH to use the old library
+#pragma comment(lib, "ZLIB.LIB")
+
 #include <stdio.h>
 #include <string.h>
 #include "unzip.h"

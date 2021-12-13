@@ -67,3 +67,7 @@ out/
 # Visual Studio folders
 .vs/
 .vscode/
+/source/Debug
+/source/Apollo.vcxproj.user
+/source/RCa10348
+/source/UpgradeLog.htm

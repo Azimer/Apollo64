@@ -1,3 +1,14 @@
+New todo for Apollo64
+
+*** Visual Studio 2019 ***
+- Create Emulation Loop to call existing CPU Core without attached devices
+- Revamp attached devices to emulate a basic non-functional output to get passed the basics for demos
+- Build up interface to allow an attached graphical display to show basic emulation (ie. N64Stars)
+*** Cmake ***
+- Revamp CPU Core and Emulation loop to fit new design -- at this point we go to cmake projects
+
+
+
 08/09/03
 --------
 -I need to ask Dominator how to do some good HLE function detection...  There are too

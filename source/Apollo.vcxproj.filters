@@ -1,0 +1,219 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{274774f7-f0af-4ea1-844d-e035ea8594c0}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Gui">
+      <UniqueIdentifier>{06004149-c0ee-4717-ba2b-586b4e5fc84d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Gui\Zip Support">
+      <UniqueIdentifier>{7ee93e75-d154-4845-a66d-2728f972fa5a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Emu">
+      <UniqueIdentifier>{43469f97-82ce-4396-aa97-c39e01013a50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Emu\RCP">
+      <UniqueIdentifier>{b0ea6915-95ed-406c-bb84-dd846326b0a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Emu\RCP\rsp">
+      <UniqueIdentifier>{698ef48b-3c15-41ba-aa4c-329a0a78c728}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Emu\r4300">
+      <UniqueIdentifier>{e669d600-16df-4f0f-973f-487d3a3b037e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Emu\r4300\interpretive">
+      <UniqueIdentifier>{34ccf31f-5bb2-4303-9fa8-2efb5341f806}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Emu\r4300\dynarec">
+      <UniqueIdentifier>{9bc9574e-4405-4c73-a40c-4e7734351092}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Plugin Overhead">
+      <UniqueIdentifier>{2123f163-2a71-4e7f-9705-71a783a3870e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{92411bb2-0121-4a34-9c09-d8ccd5889a17}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Header Files\GuiH">
+      <UniqueIdentifier>{0385808d-0e8f-454e-aad9-995ddd32ed60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\EmuH">
+      <UniqueIdentifier>{0acfe8b5-0bf3-4ad6-86f5-4ea92f3ac22e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{4be0b55b-4738-4bd1-8cf2-1a464988389e}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Resource Files\icons">
+      <UniqueIdentifier>{553b0311-43bd-4f72-84e5-8b5ada07d3d1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="R4K Debugger.cpp">
+      <Filter>Source Files\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Settings.cpp">
+      <Filter>Source Files\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="WinMain.cpp">
+      <Filter>Source Files\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="console.cpp">
+      <Filter>Source Files\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="unzip.c">
+      <Filter>Source Files\Gui\Zip Support</Filter>
+    </ClCompile>
+    <ClCompile Include="zip.cpp">
+      <Filter>Source Files\Gui\Zip Support</Filter>
+    </ClCompile>
+    <ClCompile Include="EmuMain.cpp">
+      <Filter>Source Files\Emu</Filter>
+    </ClCompile>
+    <ClCompile Include="SaveChips.cpp">
+      <Filter>Source Files\Emu</Filter>
+    </ClCompile>
+    <ClCompile Include="RspDump.cpp">
+      <Filter>Source Files\Emu\RCP</Filter>
+    </ClCompile>
+    <ClCompile Include="jpgdct.cpp">
+      <Filter>Source Files\Emu\RCP</Filter>
+    </ClCompile>
+    <ClCompile Include="rcp.cpp">
+      <Filter>Source Files\Emu\RCP</Filter>
+    </ClCompile>
+    <ClCompile Include="RSP\debug.c">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClCompile>
+    <ClCompile Include="RSP\dump_rsp.c">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClCompile>
+    <ClCompile Include="RSP\rsp.c">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClCompile>
+    <ClCompile Include="EventScheduler.cpp">
+      <Filter>Source Files\Emu\r4300</Filter>
+    </ClCompile>
+    <ClCompile Include="R4K Memory.cpp">
+      <Filter>Source Files\Emu\r4300</Filter>
+    </ClCompile>
+    <ClCompile Include="TLB.cpp">
+      <Filter>Source Files\Emu\r4300</Filter>
+    </ClCompile>
+    <ClCompile Include="r4300i Compiler.cpp">
+      <Filter>Source Files\Emu\r4300</Filter>
+    </ClCompile>
+    <ClCompile Include="FPU Machine.cpp">
+      <Filter>Source Files\Emu\r4300\interpretive</Filter>
+    </ClCompile>
+    <ClCompile Include="Fpu Machine2.cpp">
+      <Filter>Source Files\Emu\r4300\interpretive</Filter>
+    </ClCompile>
+    <ClCompile Include="MMU Machine.cpp">
+      <Filter>Source Files\Emu\r4300\interpretive</Filter>
+    </ClCompile>
+    <ClCompile Include="R4K Machine.cpp">
+      <Filter>Source Files\Emu\r4300\interpretive</Filter>
+    </ClCompile>
+    <ClCompile Include="DynaOps.cpp">
+      <Filter>Source Files\Emu\r4300\dynarec</Filter>
+    </ClCompile>
+    <ClCompile Include="R4K Dynarec.cpp">
+      <Filter>Source Files\Emu\r4300\dynarec</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio.cpp">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClCompile>
+    <ClCompile Include="Controllers.cpp">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClCompile>
+    <ClCompile Include="Plugins.cpp">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClCompile>
+    <ClCompile Include="Video.cpp">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="unzip.h">
+      <Filter>Source Files\Gui\Zip Support</Filter>
+    </ClInclude>
+    <ClInclude Include="zconf.h">
+      <Filter>Source Files\Gui\Zip Support</Filter>
+    </ClInclude>
+    <ClInclude Include="zlib.h">
+      <Filter>Source Files\Gui\Zip Support</Filter>
+    </ClInclude>
+    <ClInclude Include="RSP\debug.h">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClInclude>
+    <ClInclude Include="RSP\dump_rsp.h">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClInclude>
+    <ClInclude Include="RSP\rsp.h">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClInclude>
+    <ClInclude Include="RSP\rsp_helper.h">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClInclude>
+    <ClInclude Include="RSP\rsp_mnemonic.h">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClInclude>
+    <ClInclude Include="RSP\rsp_registers.h">
+      <Filter>Source Files\Emu\RCP\rsp</Filter>
+    </ClInclude>
+    <ClInclude Include="DynaCodes.h">
+      <Filter>Source Files\Emu\r4300\dynarec</Filter>
+    </ClInclude>
+    <ClInclude Include="audiodll.h">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClInclude>
+    <ClInclude Include="inputdll.h">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClInclude>
+    <ClInclude Include="pif2.h">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin.h">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClInclude>
+    <ClInclude Include="videodll.h">
+      <Filter>Source Files\Plugin Overhead</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Program Files\Microsoft Visual Studio\Vc98\Include\Basetsd.h">
+      <Filter>Header Files\GuiH</Filter>
+    </ClInclude>
+    <ClInclude Include="WinMain.h">
+      <Filter>Header Files\GuiH</Filter>
+    </ClInclude>
+    <ClInclude Include="console.h">
+      <Filter>Header Files\GuiH</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files\GuiH</Filter>
+    </ClInclude>
+    <ClInclude Include="CpuMain.h">
+      <Filter>Header Files\EmuH</Filter>
+    </ClInclude>
+    <ClInclude Include="EmuMain.H">
+      <Filter>Header Files\EmuH</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\dynalog.txt">
+      <Filter>Source Files\Emu\r4300\dynarec</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="rscript.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="apollo.ico">
+      <Filter>Resource Files\icons</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

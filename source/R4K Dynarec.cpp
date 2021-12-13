@@ -240,8 +240,9 @@ u32 *R4KDyna_OptimizeBlock (u32 DynaPC) {
 	return (u32 *)(rdram + (TLBLUT[DynaPC>>12] & 0x1fffffff) + (DynaPC & 0xfff));
 }
 void R4KDyna_Link () { // This is only called for link ahead ops
-	for (u32 x = 0; x < LinkCnt; x++) {
-		for (u32 t = 0; t < LinkLocs; t++) {
+	u32 x, t;
+	for (x = 0; x < LinkCnt; x++) {
+		for (t = 0; t < LinkLocs; t++) {
 			if (LinkTable[x].target == JumpTable[t].target) {
 				//int n = (int)JumpTable[t].mem - ((int)LinkTable[x].mem + 1);
 				SetBranch32b (LinkTable[x].mem, JumpTable[t].mem);
@@ -413,6 +414,7 @@ void R4KDyna_Execute (void) {
 	u32 *CodeBlock;
 	u32 lastPC;
 	u8 *startPtr;
+	int x;
 	DynaLog ("Entering Dynarec Loop");
 	
 	u32 dwRDRAMStartLoc;
@@ -448,7 +450,7 @@ void R4KDyna_Execute (void) {
 //		0x1b1 is the bad block
 #define BSTOP 0x731
 		lastPC = pc;
-		for (int x = 0; x < blockCount; x++) {
+		for (x = 0; x < blockCount; x++) {
 			if (pc == BlockInfo[x].target) {
 				break;
 			}
