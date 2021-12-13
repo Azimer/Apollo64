@@ -1,0 +1,65 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: Apollo - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\Azimer\LOCALS~1\Temp\RSP8D.tmp" with contents
+[
+/nologo /G5 /ML /W3 /GX /O2 /Ob2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FAs /Fa"Release/" /Fp"Release/Apollo.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
+"C:\Projects\Apollo-old\Audio.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\Azimer\LOCALS~1\Temp\RSP8D.tmp" 
+Creating temporary file "C:\DOCUME~1\Azimer\LOCALS~1\Temp\RSP8E.tmp" with contents
+[
+zlib.lib kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib winmm.lib advapi32.lib /nologo /subsystem:windows /incremental:no /pdb:"Release/Apollo.pdb" /machine:I386 /nodefaultlib:"MSVCRT" /out:"c:\Emu\N64\Project64\Apollo.exe" 
+".\Release\unzip.obj"
+".\Release\zip.obj"
+".\Release\console.obj"
+".\Release\R4K Debugger.obj"
+".\Release\Settings.obj"
+".\Release\WinMain.obj"
+".\Release\debug.obj"
+".\Release\dump_rsp.obj"
+".\Release\rsp.obj"
+".\Release\jpgdct.obj"
+".\Release\rcp.obj"
+".\Release\RspDump.obj"
+".\Release\FPU Machine.obj"
+".\Release\MMU Machine.obj"
+".\Release\R4K Machine.obj"
+".\Release\Recompiler.obj"
+".\Release\RecompilerDebug.obj"
+".\Release\RecompilerHLE.obj"
+".\Release\EventScheduler.obj"
+".\Release\Fpu Machine2.obj"
+".\Release\R4K Memory.obj"
+".\Release\TLB.obj"
+".\Release\EmuMain.obj"
+".\Release\SaveChips.obj"
+".\Release\Audio.obj"
+".\Release\Controllers.obj"
+".\Release\Plugins.obj"
+".\Release\Video.obj"
+".\Release\rscript.res"
+".\Release\DynaCompile.obj"
+".\Release\DynaMain.obj"
+".\Release\DynaOpcodes.obj"
+]
+Creating command line "link.exe @C:\DOCUME~1\Azimer\LOCALS~1\Temp\RSP8E.tmp"
+<h3>Output Window</h3>
+Compiling...
+Audio.cpp
+C:\Projects\Apollo-old\Audio.cpp(99) : warning C4101: 'CountCycles' : unreferenced local variable
+C:\Projects\Apollo-old\Audio.cpp(120) : warning C4244: '=' : conversion from 'const double' to 'unsigned long', possible loss of data
+Linking...
+
+
+
+<h3>Results</h3>
+Apollo.exe - 0 error(s), 2 warning(s)
+</pre>
+</body>
+</html>

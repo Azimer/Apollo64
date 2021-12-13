@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Apollo64 - N64 Emulator
 
 [Homepage](https://www.apollo64.com/)
