@@ -268,10 +268,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="zlib.lib comctl32.lib winmm.lib"
-				OutputFile="c:\Emu\N64\Project64\Apollo.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				IgnoreDefaultLibraryNames="MSVCRT"
+				IgnoreDefaultLibraryNames="libc.lib"
 				ProgramDatabaseFile=".\Release/Apollo.pdb"
 				SubSystem="2"
 				TargetMachine="1"
