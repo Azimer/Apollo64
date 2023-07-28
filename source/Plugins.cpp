@@ -25,7 +25,7 @@
  **************************************************************************/
 #include <windows.h>
 #include <windowsx.h>
-#include <ddraw.h>
+//#include <ddraw.h>
 #include <commctrl.h> // For status window
 #include <stdio.h>
 #include <string.h>

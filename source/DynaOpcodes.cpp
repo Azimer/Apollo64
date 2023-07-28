@@ -16,16 +16,16 @@ extern void (*MmuNormal[0x20])();
 void opCOP1 ();
 void InterpreteOp (u32 *op, u32 dynaPC);
 
-inline RS_RT_Comp () {
-	MoveVariableToEax(&CpuRegs[sop.rt], "CpuRegs[sop.rt]");
-	CompEaxToVariable(&CpuRegs[sop.rs], "CpuRegs[sop.rs]");
+inline void RS_RT_Comp () {
+	MoveVariableToEax((u32 *)&CpuRegs[sop.rt], "CpuRegs[sop.rt]");
+	CompEaxToVariable((u32 *)&CpuRegs[sop.rs], "CpuRegs[sop.rs]");
 }
-inline RS_RT_Comp64 () {
+inline void RS_RT_Comp64 () {
 	MoveVariableToEax((u8 *)&CpuRegs[sop.rt]+4, "CpuRegs[sop.rt]");
 	CompEaxToVariable((u8 *)&CpuRegs[sop.rs]+4, "CpuRegs[sop.rs]");
 }
 
-inline DoDelay (u32 dynaPC) {
+inline void DoDelay (u32 dynaPC) {
 	dynaPC += 4;
 	u32 *op =	(u32 *)(rdram + 
 				(TLBLUT[dynaPC>>0xC] & 0x1fffffff) + 

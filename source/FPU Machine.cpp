@@ -265,7 +265,7 @@ void fpSRT17(void){
 }
 
 void fpSRT20(void){
-	FpuRegs.w[sop.sa] = (long)sqrt(FpuRegs.w[sop.rd]);
+	FpuRegs.w[sop.sa] = (long)sqrt((float)FpuRegs.w[sop.rd]);
 }
 
 void fpSRT21(void){
@@ -281,7 +281,7 @@ void fpABS17(void){
 }
 
 void fpABS20(void){
-	FpuRegs.w[sop.sa] = (s32)fabs(FpuRegs.w[sop.rd]);
+	FpuRegs.w[sop.sa] = (s32)fabs((float)FpuRegs.w[sop.rd]);
 }
 
 void fpABS21(void){

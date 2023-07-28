@@ -13,7 +13,7 @@
 
 #include "resource.h"
 #include "WinMain.h"
-#include <d3d.h>
+//#include <d3d.h>
 
 #define RegVersion 0x0003 // Version 1 (Version 0 was Eclipse)
 

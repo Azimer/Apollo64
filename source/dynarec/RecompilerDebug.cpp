@@ -20,7 +20,8 @@ void InterpreterStep ();
 // ****** Support functions for Display ******
 void UpdateRegisters () {
 	char buff[20];
-	for (int i = 0; i < 32; i++) {
+	int i;
+	for (i = 0; i < 32; i++) {
 		sprintf (buff, "%08X%08X", (u32)(CpuRegs[i]>>32), CpuRegs[i]&0xFFFFFFFF);
 		SetDlgItemText (hDlgBox, IDC_REGR0+i, buff);
 	}
