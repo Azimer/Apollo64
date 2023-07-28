@@ -1,3 +1,8 @@
+The only todo is to fix all of the instability before proceeding...
+
+
+
+------------------------ OLD STUFF --------------------------------------------------------
 08/09/03
 --------
 -I need to ask Dominator how to do some good HLE function detection...  There are too
