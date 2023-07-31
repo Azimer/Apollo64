@@ -116,7 +116,7 @@ void AddPluginToDialog (char *filename, HWND hWnd) {
 				case PLUGIN_TYPE_RSP : // Type not supported...
 					break;
 				case PLUGIN_TYPE_GFX : // Graphics
-					if (((Plugin.Version == PLUGIN_GFX_VERSION) || (Plugin.Version == 0x0102))&& (maxGFX < MAX_VIDEO)) {
+					if (((Plugin.Version <= PLUGIN_GFX_VERSION) || (Plugin.Version == 0x0102))&& (maxGFX < MAX_VIDEO)) {
 						Debug (0, "%s is a Graphics Plugin...", filename);
 						SendMessage(GetDlgItem(hWnd, IDC_VIDEO_LIST), CB_INSERTSTRING, maxGFX, (LPARAM)Plugin.Name);
 						if (!strcmp(filename, RegSettings.vidDll)) {
@@ -130,7 +130,7 @@ void AddPluginToDialog (char *filename, HWND hWnd) {
 					}
 					break;
 				case PLUGIN_TYPE_AUDIO : // Audio
-					if ((Plugin.Version == PLUGIN_SND_VERSION) && (maxSND < MAX_SOUND)) {
+					if ((Plugin.Version <= PLUGIN_SND_VERSION) && (maxSND < MAX_SOUND)) {
 						Debug (0, "%s is an Audio Plugin...", filename);
 						SendMessage(GetDlgItem(hWnd, IDC_AUDIO_LIST), CB_INSERTSTRING, maxSND, (LPARAM)Plugin.Name);
 						if (!strcmp(filename, RegSettings.sndDll)) {
@@ -144,7 +144,7 @@ void AddPluginToDialog (char *filename, HWND hWnd) {
 					}
 					break;
 				case PLUGIN_TYPE_CONTROLLER : // Input
-					if ((Plugin.Version == PLUGIN_INP_VERSION) && (maxINP < MAX_INPUT)) { // We will accept all inputs right now
+					if ((Plugin.Version <= PLUGIN_INP_VERSION) && (maxINP < MAX_INPUT)) { // We will accept all inputs right now
 						Debug (0, "%s is an Input Plugin...", filename);
 						SendMessage(GetDlgItem(hWnd, IDC_CONTROLLER_LIST), CB_INSERTSTRING, maxINP, (LPARAM)Plugin.Name);
 						if (!strcmp(filename, RegSettings.inpDll)) {
@@ -340,7 +340,7 @@ BOOL CALLBACK PluginProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						strcpy (buffer, dllpath);
 						strcat (buffer, inputPlugins[index]);
 						inpdll.Load (buffer);
-						inpdll.InitiateControllers (GhWnd, ContInfo);
+						//inpdll.InitiateControllers (GhWnd, ContInfo);
 						strcpy (RegSettings.inpDll, inputPlugins[index]);
 					}
 					if (MenuId == IDOK) {

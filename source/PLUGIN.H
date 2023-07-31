@@ -12,9 +12,9 @@
 #define SYSTEM_PAL					1
 #define SYSTEM_MPAL					2
 
-#define PLUGIN_GFX_VERSION			0x0103
-#define PLUGIN_INP_VERSION			0x0100
-#define PLUGIN_SND_VERSION			0x0101
+#define PLUGIN_GFX_VERSION			0x0104
+#define PLUGIN_INP_VERSION			0x0102
+#define PLUGIN_SND_VERSION			0x0102
 
 
 /***** Structures *****/

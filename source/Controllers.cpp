@@ -71,7 +71,7 @@ BOOL LoadInputPlugin (char *libname) {
 	inpdll.GetDllInfo(&Plugin_Info);
 
 	if(Plugin_Info.Type == PLUGIN_TYPE_CONTROLLER) {
-		if(Plugin_Info.Version != PLUGIN_INP_VERSION) {
+		if(Plugin_Info.Version > PLUGIN_INP_VERSION) {
 			Debug (0, "%s is not compatable with Apollo. %X != %X", libname, Plugin_Info.Version, PLUGIN_INP_VERSION);
 			inpdll.Close();
 			return FALSE;

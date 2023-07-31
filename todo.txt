@@ -1,5 +1,15 @@
 New todo for Apollo64
 
+[X] - Get the source to compile and run
+[X] - Get the release variant to compile and run
+[ ] - Get the code to run anything and fix issues
+    [ ] - Fix inability to save settings
+    [ ] - Fix inability to load plugins appropriately
+[ ] - Fix compiler warnings
+[ ] - Begin rewrite of UI to modernize it
+[ ] - Begin rewrite of CPU Core to decouple it from the rest of the emulator
+
+
 *** Visual Studio 2019 ***
 - Create Emulation Loop to call existing CPU Core without attached devices
 - Revamp attached devices to emulate a basic non-functional output to get passed the basics for demos

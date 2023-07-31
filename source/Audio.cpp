@@ -180,7 +180,7 @@ BOOL LoadAudioPlugin (char *libname) {
 	snddll.GetDllInfo(&Plugin_Info);
 
 	if(Plugin_Info.Type == PLUGIN_TYPE_AUDIO) {
-		if(Plugin_Info.Version != PLUGIN_SND_VERSION) {
+		if(Plugin_Info.Version > PLUGIN_SND_VERSION) {
 			Debug (0, "%s is not compatable with Apollo. %X != %X", libname, Plugin_Info.Version, PLUGIN_INP_VERSION);
 			snddll.Close();
 			return FALSE;

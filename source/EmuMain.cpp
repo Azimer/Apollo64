@@ -308,13 +308,13 @@ UINT CpuThreadProc(LPVOID) {
 		cpuIsReset = false;
 		ResetCPU ();
 		while (cpuIsReset == false) {
-			__try {
+			/*__try {
 				if (ChangeProtectionLevel != old) {
 					VirtualProtect((void *)(valloc+0x10000000), romsize, ChangeProtectionLevel, &old); // Ok.. next read is bad
 					old = ChangeProtectionLevel;
-				}
+				}*/
 				Emulate ();
-			}__except ( HandleWin32Exception(GetExceptionInformation()) ) {
+			/*}__except ( HandleWin32Exception(GetExceptionInformation()) ) {
 					short* hh = (short*)intelException[0].ExceptionRecord[0].ExceptionAddress;
 					if (hh[0]==0x008B) {
 						intelException[0].ContextRecord[0].Eax = 0;

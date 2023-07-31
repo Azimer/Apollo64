@@ -95,7 +95,7 @@ BOOL LoadVideoPlugin(char* libname) {
 	gfxdll.GetDllInfo(&Plugin_Info);
 
 	if(Plugin_Info.Type == PLUGIN_TYPE_GFX) {
-		if((Plugin_Info.Version != 0x0102) && (Plugin_Info.Version != 0x0103)) {
+		if(Plugin_Info.Version > PLUGIN_GFX_VERSION) {
 			Debug (0, "%s is not compatable with Apollo. %d != 1", libname, Plugin_Info.Version);
 			gfxdll.Close();
 			return FALSE;
